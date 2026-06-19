@@ -1,0 +1,236 @@
+.page {
+  display: grid;
+  min-height: 100vh;
+  background: var(--paper);
+}
+
+.story {
+  position: relative;
+  display: none;
+  overflow: hidden;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(36px, 5vw, 72px);
+  background:
+    radial-gradient(circle at 15% 90%, oklch(42% 0.09 245), transparent 34%),
+    var(--navy);
+  color: var(--paper);
+}
+
+.story::after {
+  position: absolute;
+  right: -11vw;
+  bottom: -17vw;
+  width: 42vw;
+  height: 42vw;
+  border: 1px solid oklch(85% 0.04 85 / 0.17);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 7vw oklch(85% 0.04 85 / 0.06),
+    0 0 0 14vw oklch(85% 0.04 85 / 0.035);
+  content: "";
+}
+
+.storyTop,
+.statement,
+.signal {
+  position: relative;
+  z-index: 1;
+}
+
+.brandLine {
+  display: grid;
+  width: min(100%, 310px);
+  min-height: 112px;
+  place-items: center;
+  padding: 16px 20px;
+  border: 1px solid oklch(82% 0.04 86 / 0.5);
+  border-radius: 18px;
+  background: var(--paper);
+  box-shadow:
+    0 18px 48px oklch(16% 0.04 245 / 0.22),
+    inset 0 0 0 1px oklch(100% 0 0 / 0.65);
+}
+
+.brandLogo {
+  width: 100%;
+  height: auto;
+  max-height: 78px;
+  object-fit: contain;
+}
+
+.kicker {
+  margin: 18px 0 0;
+  color: oklch(76% 0.03 88);
+  font-size: 0.86rem;
+}
+
+.statement {
+  max-width: 610px;
+}
+
+.quoteMark {
+  margin: 0 0 -26px;
+  color: var(--orange);
+  font-family: var(--font-serif), serif;
+  font-size: 7rem;
+  line-height: 0.5;
+}
+
+.statement h1 {
+  font-size: clamp(3.4rem, 5.5vw, 6.6rem);
+  line-height: 0.88;
+}
+
+.statement > p:last-child {
+  max-width: 50ch;
+  margin: 30px 0 0;
+  color: oklch(83% 0.025 88);
+  font-size: 1.05rem;
+  line-height: 1.65;
+}
+
+.signal {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: oklch(80% 0.026 88);
+  font-size: 0.82rem;
+}
+
+.signalDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--orange);
+  box-shadow: 0 0 0 5px oklch(67% 0.18 50 / 0.14);
+}
+
+.login {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 32px 20px;
+}
+
+.loginInner {
+  display: grid;
+  width: min(100%, 440px);
+  gap: 36px;
+}
+
+.loginTitle {
+  margin: 0;
+  font-family: var(--font-serif), serif;
+  font-size: clamp(2.4rem, 9vw, 4.2rem);
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+}
+
+.loginCopy {
+  max-width: 38ch;
+  margin: 18px 0 0;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+
+.form {
+  display: grid;
+  gap: 18px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+}
+
+.field label {
+  color: var(--ink-soft);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.inputWrap {
+  position: relative;
+}
+
+.inputWrap svg {
+  position: absolute;
+  top: 50%;
+  left: 15px;
+  width: 19px;
+  height: 19px;
+  color: var(--ink-faint);
+  transform: translateY(-50%);
+}
+
+.inputWrap input {
+  width: 100%;
+  min-height: 54px;
+  padding: 0 15px 0 46px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.inputWrap input:focus {
+  border-color: var(--navy);
+  box-shadow: 0 0 0 3px oklch(30% 0.075 245 / 0.12);
+  outline: none;
+}
+
+.submit {
+  min-height: 54px;
+  margin-top: 4px;
+}
+
+.demo {
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.demo > p {
+  margin: 0 0 10px;
+  color: var(--ink-faint);
+  font-size: 0.73rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.demoButtons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.demoButtons button {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.83rem;
+  font-weight: 700;
+}
+
+@media (hover: hover) {
+  .demoButtons button:hover {
+    border-color: var(--navy);
+    background: var(--surface);
+  }
+}
+
+@media (min-width: 920px) {
+  .page {
+    grid-template-columns: minmax(0, 1.2fr) minmax(420px, 0.8fr);
+  }
+
+  .story {
+    display: flex;
+  }
+}
