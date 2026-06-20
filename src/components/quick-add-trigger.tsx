@@ -1,0 +1,24 @@
+"use client";
+
+import { useState } from "react";
+import { Sparkles } from "lucide-react";
+import { QuickAddModal } from "./quick-add-modal";
+
+export function QuickAddTrigger() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <>
+      <button
+        className="button button-primary"
+        onClick={() => setIsOpen(true)}
+        style={{ display: "flex", alignItems: "center", gap: "6px" }}
+      >
+        <Sparkles size={16} />
+        Quick Add
+      </button>
+
+      {isOpen && <QuickAddModal onClose={() => setIsOpen(false)} />}
+    </>
+  );
+}

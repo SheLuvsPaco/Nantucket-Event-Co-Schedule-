@@ -7,13 +7,13 @@ import styles from "./login.module.css";
 
 type DemoAccount = {
   label: string;
-  email: string;
+  name: string;
   password: string;
 };
 
 export function LoginForm({ demoAccounts }: { demoAccounts: DemoAccount[] }) {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
@@ -27,7 +27,7 @@ export function LoginForm({ demoAccounts }: { demoAccounts: DemoAccount[] }) {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ name, password }),
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) {
@@ -44,7 +44,7 @@ export function LoginForm({ demoAccounts }: { demoAccounts: DemoAccount[] }) {
   }
 
   function fillDemo(account: DemoAccount) {
-    setEmail(account.email);
+    setName(account.name);
     setPassword(account.password);
     setError("");
   }
@@ -52,17 +52,17 @@ export function LoginForm({ demoAccounts }: { demoAccounts: DemoAccount[] }) {
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
       <div className={styles.field}>
-        <label htmlFor="email">Email address</label>
+        <label htmlFor="name">Name</label>
         <div className={styles.inputWrap}>
           <Mail aria-hidden="true" />
           <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="you@company.com"
+            id="name"
+            name="name"
+            type="text"
+            autoComplete="username"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Your name"
             required
           />
         </div>
@@ -80,7 +80,7 @@ export function LoginForm({ demoAccounts }: { demoAccounts: DemoAccount[] }) {
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="Your password"
-            minLength={8}
+            minLength={4}
             required
           />
         </div>

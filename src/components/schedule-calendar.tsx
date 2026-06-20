@@ -22,10 +22,12 @@ import styles from "./schedule-calendar.module.css";
 const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function ScheduleCalendar({
+  basePath = "/app/schedule",
   events,
   monthKey,
   todayKey,
 }: {
+  basePath?: string;
   events: CalendarEvent[];
   monthKey: string;
   todayKey: string;
@@ -44,7 +46,7 @@ export function ScheduleCalendar({
   }
 
   function goToMonth(date: Date) {
-    router.push(`/app/schedule?month=${format(date, "yyyy-MM")}`);
+    router.push(`${basePath}?month=${format(date, "yyyy-MM")}`);
   }
 
   return (
@@ -96,7 +98,7 @@ export function ScheduleCalendar({
               className={styles.day}
               data-outside={outside}
               data-today={isToday}
-              href={`/app/schedule/${dateKey}`}
+              href={`${basePath}/${dateKey}`}
               key={dateKey}
             >
               <span className={styles.dateNumber}>{format(day, "d")}</span>

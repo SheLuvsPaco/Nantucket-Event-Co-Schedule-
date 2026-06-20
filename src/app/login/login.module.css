@@ -71,7 +71,7 @@
 
 .quoteMark {
   margin: 0 0 -26px;
-  color: var(--orange);
+  color: var(--light-blue);
   font-family: var(--font-serif), serif;
   font-size: 7rem;
   line-height: 0.5;
@@ -102,8 +102,8 @@
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: var(--orange);
-  box-shadow: 0 0 0 5px oklch(67% 0.18 50 / 0.14);
+  background: var(--light-blue);
+  box-shadow: 0 0 0 5px rgba(91, 153, 214, 0.14);
 }
 
 .login {
@@ -179,7 +179,7 @@
 
 .inputWrap input:focus {
   border-color: var(--navy);
-  box-shadow: 0 0 0 3px oklch(30% 0.075 245 / 0.12);
+  box-shadow: 0 0 0 3px rgba(91, 153, 214, 0.12);
   outline: none;
 }
 

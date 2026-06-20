@@ -8,6 +8,27 @@
       "when": 1781832626328,
       "tag": "0000_misty_daimon_hellstrom",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1781895423987,
+      "tag": "0001_deep_molly_hayes",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1781907893465,
+      "tag": "0002_numerous_alex_wilder",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1781913975508,
+      "tag": "0003_whole_nekra",
+      "breakpoints": true
     }
   ]
 }

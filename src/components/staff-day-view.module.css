@@ -23,6 +23,7 @@
 }
 
 .event {
+  container-type: inline-size;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
@@ -36,6 +37,11 @@
   padding: 24px 20px;
   background: var(--navy);
   color: var(--paper);
+}
+
+.eventStart,
+.eventTitle {
+  min-width: 0;
 }
 
 .eventNumber,
@@ -54,31 +60,37 @@
 
 .callTime {
   margin: 4px 0 0;
-  color: var(--orange);
+  color: var(--light-blue);
   font-family: var(--font-serif), serif;
-  font-size: clamp(3rem, 16vw, 5.5rem);
+  font-size: clamp(2.5rem, 11cqi, 4.25rem);
   font-weight: 650;
   letter-spacing: -0.055em;
-  line-height: 0.9;
+  line-height: 0.95;
   white-space: nowrap;
 }
 
 .eventTitle {
   align-self: end;
+  justify-self: end;
+  width: min(100%, 680px);
+  text-align: right;
 }
 
 .eventTitle h2 {
   max-width: 680px;
   margin: 14px 0 16px;
   font-family: var(--font-serif), serif;
-  font-size: clamp(2rem, 9vw, 4rem);
+  font-size: clamp(1.85rem, 8cqi, 3.35rem);
   font-weight: 600;
   letter-spacing: -0.045em;
-  line-height: 0.96;
+  line-height: 1;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
 }
 
 .eventTitle > p {
   display: flex;
+  justify-content: flex-end;
   gap: 10px;
   margin: 0;
   color: oklch(83% 0.028 88);
@@ -90,7 +102,11 @@
   height: 20px;
   flex: 0 0 auto;
   margin-top: 1px;
-  color: var(--orange);
+  color: var(--light-blue);
+}
+
+.eventTitle > span {
+  margin-left: auto;
 }
 
 .eventTitle strong,
@@ -119,6 +135,50 @@
 .brief h3,
 .brief p {
   margin: 0;
+}
+
+.jobInstructions {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  padding: 22px 20px;
+  border-top: 1px solid oklch(84% 0.06 68);
+  background: oklch(96% 0.025 76);
+  color: var(--navy);
+}
+
+.jobInstructions > svg {
+  width: 25px;
+  height: 25px;
+  margin-top: 2px;
+  color: var(--orange);
+}
+
+.jobInstructions p,
+.jobInstructions h3,
+.jobInstructions div > div {
+  margin: 0;
+}
+
+.jobInstructions p {
+  color: oklch(46% 0.08 52);
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.jobInstructions h3 {
+  margin-top: 2px;
+  font-size: 1.35rem;
+}
+
+.jobInstructions div > div {
+  margin-top: 8px;
+  font-size: 1.02rem;
+  font-weight: 650;
+  line-height: 1.6;
+  white-space: pre-wrap;
 }
 
 .brief h3 {
@@ -154,7 +214,7 @@
 .sectionHeading > svg {
   width: 25px;
   height: 25px;
-  color: var(--orange);
+  color: var(--light-blue);
 }
 
 .sectionHeading p,
@@ -202,10 +262,23 @@
 }
 
 .timeline time {
+  display: grid;
+  gap: 3px;
   color: var(--navy);
   font-size: 1.08rem;
   font-weight: 850;
   font-variant-numeric: tabular-nums;
+}
+
+.timeline time span,
+.timeline time small {
+  display: block;
+}
+
+.timeline time small {
+  color: var(--ink-soft);
+  font-size: 0.76rem;
+  font-weight: 750;
 }
 
 .timeline li > div {
@@ -221,7 +294,7 @@
   height: 10px;
   border: 3px solid var(--surface);
   border-radius: 50%;
-  background: var(--orange);
+  background: var(--light-blue);
   box-shadow: 0 0 0 1px var(--line);
   content: "";
 }
@@ -262,7 +335,7 @@
 }
 
 .vehicleTop span {
-  color: var(--orange);
+  color: var(--light-blue);
   font-weight: 850;
 }
 
@@ -402,14 +475,6 @@
   color: var(--ink-soft);
 }
 
-.notes > p {
-  margin: 0;
-  color: var(--ink-soft);
-  font-size: 1rem;
-  line-height: 1.65;
-  white-space: pre-wrap;
-}
-
 .missing {
   margin: 0;
   padding: 14px;
@@ -422,15 +487,20 @@
   margin-top: 24px;
 }
 
-@media (min-width: 760px) {
+@container (min-width: 680px) {
   .eventHeader {
-    grid-template-columns: minmax(230px, 0.42fr) minmax(0, 1fr);
-    gap: 40px;
+    grid-template-columns: minmax(0, 190px) minmax(0, 1fr);
+    gap: clamp(28px, 5cqi, 52px);
+    align-items: end;
     padding: 38px;
   }
 
   .brief {
     padding: 24px 38px;
+  }
+
+  .jobInstructions {
+    padding: 26px 38px;
   }
 
   .sections {
@@ -446,7 +516,7 @@
   }
 
   .packSection,
-  .notes {
+  .jobInstructions {
     grid-column: 1 / -1;
   }
 

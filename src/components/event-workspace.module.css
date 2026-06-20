@@ -25,7 +25,7 @@
 }
 
 .tab > span {
-  color: var(--orange);
+  color: var(--light-blue);
   font-size: 0.65rem;
   font-weight: 850;
   letter-spacing: 0.08em;
@@ -65,7 +65,7 @@
 .newTab > svg {
   width: 20px;
   height: 20px;
-  color: var(--orange);
+  color: var(--light-blue);
 }
 
 .editor {
@@ -207,7 +207,7 @@
 .timeTrigger > svg {
   width: 18px;
   height: 18px;
-  color: var(--orange);
+  color: var(--light-blue);
 }
 
 .timeTrigger > svg:last-child {
@@ -314,7 +314,7 @@
   width: 2px;
   height: 76px;
   border-radius: 999px;
-  background: var(--orange);
+  background: var(--light-blue);
   transform: rotate(var(--clock-hand-angle));
   transform-origin: bottom center;
 }
@@ -327,7 +327,7 @@
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: var(--orange);
+  background: var(--light-blue);
   transform: translate(-50%, -50%);
 }
 

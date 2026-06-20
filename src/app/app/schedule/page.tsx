@@ -9,6 +9,7 @@ import {
   startOfWeek,
 } from "date-fns";
 import { ScheduleCalendar } from "@/components/schedule-calendar";
+import { QuickAddTrigger } from "@/components/quick-add-trigger";
 import { requireSession } from "@/lib/auth";
 import { formatDateKey, getTodayKey } from "@/lib/date";
 import { getCalendarEvents } from "@/lib/data";
@@ -46,11 +47,14 @@ export default async function SchedulePage({
   return (
     <div className="page-shell">
       <div className="page-heading schedule-heading">
-        <div>
-          <p className="eyebrow">
-            {session.role === "STAFF" ? "Crew schedule" : "Season operations"}
-          </p>
-          <h1>{format(monthDate, "MMMM yyyy")}</h1>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
+          <div>
+            <p className="eyebrow">
+              {session.role === "STAFF" ? "Crew schedule" : "Season operations"}
+            </p>
+            <h1>{format(monthDate, "MMMM yyyy")}</h1>
+          </div>
+          {session.role !== "STAFF" && <QuickAddTrigger />}
         </div>
         <p className="schedule-intro">
           {session.role === "STAFF"

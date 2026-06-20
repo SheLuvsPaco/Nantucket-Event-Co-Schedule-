@@ -38,6 +38,7 @@ export async function PATCH(request: Request, context: Context) {
           returnTime: input.returnTime,
           notes: input.notes,
           staffBrief: input.staffBrief,
+          packerUserId: input.packerUserId,
           updatedAt: new Date(),
         })
         .where(eq(events.id, id))
@@ -56,6 +57,7 @@ export async function PATCH(request: Request, context: Context) {
             id: createId("tml"),
             eventId: id,
             time: entry.time,
+            endTime: entry.endTime,
             label: entry.label,
             details: entry.details,
             sortOrder: index,

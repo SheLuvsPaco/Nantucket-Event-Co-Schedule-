@@ -7,6 +7,7 @@ import {
   CalendarDays,
   LogOut,
   Truck,
+  UserRoundCheck,
   UsersRound,
 } from "lucide-react";
 import type { Role } from "@/db/schema";
@@ -17,6 +18,12 @@ const allLinks = [
     label: "Schedule",
     icon: CalendarDays,
     roles: ["ADMIN", "OWNER", "STAFF"] satisfies Role[],
+  },
+  {
+    href: "/app/only-me",
+    label: "Only Me",
+    icon: UserRoundCheck,
+    roles: ["STAFF"] satisfies Role[],
   },
   {
     href: "/app/inventory",

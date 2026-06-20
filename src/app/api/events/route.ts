@@ -57,6 +57,7 @@ export async function POST(request: Request) {
         returnTime: input.returnTime,
         notes: input.notes,
         staffBrief: input.staffBrief,
+        packerUserId: input.packerUserId,
         createdBy: auth.session.id,
       });
 
@@ -66,6 +67,7 @@ export async function POST(request: Request) {
             id: createId("tml"),
             eventId,
             time: entry.time,
+            endTime: entry.endTime,
             label: entry.label,
             details: entry.details,
             sortOrder: index,

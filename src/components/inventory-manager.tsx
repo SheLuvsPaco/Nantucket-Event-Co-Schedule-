@@ -36,6 +36,7 @@ export function InventoryManager({
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState(emptyItem);
   const [pending, setPending] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
   const categories = useMemo(
@@ -105,6 +106,35 @@ export function InventoryManager({
       setError("We could not reach the schedule. Check your connection and save again.");
     } finally {
       setPending(false);
+    }
+  }
+
+  async function uploadImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setError("");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.error ?? "Failed to upload image.");
+        return;
+      }
+
+      setDraft((current) => ({ ...current, imageUrl: data.url }));
+    } catch {
+      setError("Network error while uploading image.");
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -245,19 +275,32 @@ export function InventoryManager({
                 </div>
                 <div className="field">
                   <label htmlFor="inventory-image">Image URL</label>
-                  <input
-                    className="input"
-                    id="inventory-image"
-                    type="url"
-                    value={draft.imageUrl ?? ""}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        imageUrl: event.target.value,
-                      }))
-                    }
-                    placeholder="https://…"
-                  />
+                  <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                    <input
+                      className="input"
+                      id="inventory-image"
+                      type="url"
+                      value={draft.imageUrl ?? ""}
+                      onChange={(event) =>
+                        setDraft((current) => ({
+                          ...current,
+                          imageUrl: event.target.value,
+                        }))
+                      }
+                      placeholder="https://…"
+                      style={{ flex: 1 }}
+                    />
+                    <label className="button button-secondary" style={{ cursor: "pointer", margin: 0, padding: "0.5rem 1rem" }}>
+                      {uploading ? "Uploading..." : "Upload"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={uploadImage}
+                        disabled={uploading}
+                        style={{ display: "none" }}
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
               <div className="field">

@@ -30,8 +30,8 @@ const eventDate = z.preprocess(
 );
 
 export const loginSchema = z.object({
-  email: z.string().trim().email().transform((value) => value.toLowerCase()),
-  password: z.string().min(8).max(200),
+  name: z.string().trim().min(1),
+  password: z.string().min(4).max(200),
 });
 
 export const inventorySchema = z.object({
@@ -72,6 +72,7 @@ const timelineSchema = z.object({
     (value) => (typeof value === "string" && value ? value : "00:00"),
     z.string().regex(/^\d{2}:\d{2}$/),
   ),
+  endTime: optionalTime,
   label: z
     .preprocess(
       (value) => (typeof value === "string" ? value.trim() : ""),
@@ -91,6 +92,7 @@ const eventInventorySchema = z.object({
     (value) => (value === "" || value === undefined ? 1 : value),
     z.coerce.number().int().min(1).max(100000),
   ),
+  packed: z.boolean().default(false),
   notes: optionalText,
 });
 
@@ -127,6 +129,10 @@ export const eventSchema = z.object({
   returnTime: optionalTime,
   notes: optionalText,
   staffBrief: optionalText,
+  packerUserId: z
+    .union([z.string().min(1), z.literal(""), z.null()])
+    .optional()
+    .transform((value) => value || null),
   timeline: z.array(timelineSchema).max(100).default([]),
   inventory: z
     .array(eventInventorySchema)

@@ -31,6 +31,7 @@ import type {
   UserRecord,
   VehicleRecord,
 } from "@/types";
+import { isCountFreePackItem } from "@/lib/pack-list";
 import styles from "./event-workspace.module.css";
 
 type EventDraft = {
@@ -44,9 +45,11 @@ type EventDraft = {
   returnTime: string;
   notes: string;
   staffBrief: string;
+  packerUserId: string;
   timeline: Array<{
     id?: string;
     time: string;
+    endTime: string;
     label: string;
     details: string;
     sortOrder: number;
@@ -54,6 +57,7 @@ type EventDraft = {
   inventory: Array<{
     inventoryItemId: string;
     quantity: number;
+    packed: boolean;
     notes: string;
   }>;
   staff: Array<{
@@ -82,6 +86,7 @@ function blankEvent(date: string): EventDraft {
     returnTime: "",
     notes: "",
     staffBrief: "",
+    packerUserId: "",
     timeline: [],
     inventory: [],
     staff: [],
@@ -101,9 +106,11 @@ function toDraft(event: ScheduleEvent): EventDraft {
     returnTime: event.returnTime ?? "",
     notes: event.notes ?? "",
     staffBrief: event.staffBrief ?? "",
+    packerUserId: event.packerUserId ?? "",
     timeline: event.timeline.map((entry) => ({
       id: entry.id,
       time: entry.time,
+      endTime: entry.endTime ?? "",
       label: entry.label,
       details: entry.details ?? "",
       sortOrder: entry.sortOrder,
@@ -111,6 +118,7 @@ function toDraft(event: ScheduleEvent): EventDraft {
     inventory: event.inventory.map((entry) => ({
       inventoryItemId: entry.inventoryItemId,
       quantity: entry.quantity,
+      packed: entry.packed,
       notes: entry.notes ?? "",
     })),
     staff: event.staff.map((entry) => ({
@@ -266,9 +274,8 @@ function ClockPicker({
             data-mode={mode}
             style={
               {
-                "--clock-hand-angle": `${
-                  mode === "hour" ? (hour12 % 12) * 30 : minute * 6
-                }deg`,
+                "--clock-hand-angle": `${mode === "hour" ? (hour12 % 12) * 30 : minute * 6
+                  }deg`,
               } as CSSProperties
             }
           >
@@ -618,6 +625,7 @@ function EventForm({
       ...draft.timeline,
       {
         time: draft.callTime || "08:00",
+        endTime: "",
         label: "",
         details: "",
         sortOrder: draft.timeline.length,
@@ -631,7 +639,7 @@ function EventForm({
     if (!available) return;
     update("inventory", [
       ...draft.inventory,
-      { inventoryItemId: available.id, quantity: 1, notes: "" },
+      { inventoryItemId: available.id, quantity: 1, packed: false, notes: "" },
     ]);
   }
 
@@ -763,7 +771,7 @@ function EventForm({
         >
           <div className="form-grid form-grid-3">
             <div className="field">
-              <label htmlFor="call-time">Crew call</label>
+              <label htmlFor="call-time">Warehouse call</label>
               <ClockPicker
                 id="call-time"
                 value={draft.callTime}
@@ -800,9 +808,9 @@ function EventForm({
               <div className={styles.formRow} key={entry.id ?? `timeline-${index}`}>
                 <div className={styles.rowNumber}>{index + 1}</div>
                 <div className={`form-grid ${styles.rowFields}`}>
-                  <div className="form-grid form-grid-2">
+                  <div className="form-grid form-grid-3">
                     <div className="field">
-                      <label htmlFor={`timeline-time-${index}`}>Time</label>
+                      <label htmlFor={`timeline-time-${index}`}>Start time</label>
                       <input
                         className="input"
                         id={`timeline-time-${index}`}
@@ -811,6 +819,23 @@ function EventForm({
                         onChange={(event) => {
                           const next = [...draft.timeline];
                           next[index] = { ...entry, time: event.target.value };
+                          update("timeline", next);
+                        }}
+                      />
+                    </div>
+                    <div className="field">
+                      <label htmlFor={`timeline-end-time-${index}`}>End time</label>
+                      <input
+                        className="input"
+                        id={`timeline-end-time-${index}`}
+                        type="time"
+                        value={entry.endTime}
+                        onChange={(event) => {
+                          const next = [...draft.timeline];
+                          next[index] = {
+                            ...entry,
+                            endTime: event.target.value,
+                          };
                           update("timeline", next);
                         }}
                       />
@@ -875,9 +900,41 @@ function EventForm({
           icon={<Box aria-hidden="true" />}
           title="Pack list"
         >
+          {draft.id && (
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "-1.5rem", position: "relative", zIndex: 10 }}>
+              <a href={`/print/packlist/${draft.id}`} target="_blank" className="button button-secondary" style={{ padding: "6px 12px", fontSize: "13px" }}>
+                <FileText aria-hidden="true" style={{ width: 16, height: 16, marginRight: 6 }} />
+                Export to PDF
+              </a>
+            </div>
+          )}
+          <div className="field" style={{ marginBottom: "1.5rem" }}>
+            <label htmlFor="packer-user-id">Assigned Packer</label>
+            <select
+              className="input"
+              id="packer-user-id"
+              value={draft.packerUserId}
+              onChange={(e) => update("packerUserId", e.target.value)}
+            >
+              <option value="">No specific packer assigned</option>
+              {people
+                .filter((p) => p.active || p.id === draft.packerUserId)
+                .map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {person.name}
+                  </option>
+                ))}
+            </select>
+          </div>
           <div className={styles.rows}>
-            {draft.inventory.map((entry, index) => (
-              <div className={styles.formRow} key={`pack-item-${index}`}>
+            {draft.inventory.map((entry, index) => {
+              const selectedItem = inventory.find(
+                (item) => item.id === entry.inventoryItemId,
+              );
+              const countFree = isCountFreePackItem(selectedItem?.name);
+
+              return (
+                <div className={styles.formRow} key={`pack-item-${index}`}>
                 <div className={styles.rowNumber}>{index + 1}</div>
                 <div className={`form-grid ${styles.rowFields}`}>
                   <div className="form-grid form-grid-2">
@@ -899,28 +956,45 @@ function EventForm({
                           next[index] = {
                             ...entry,
                             inventoryItemId: value,
+                            quantity: isCountFreePackItem(
+                              inventory.find((item) => item.id === value)?.name,
+                            )
+                              ? 1
+                              : entry.quantity,
                           };
                           update("inventory", next);
                         }}
                       />
                     </div>
                     <div className="field">
-                      <label htmlFor={`inventory-quantity-${index}`}>Pack quantity</label>
-                      <input
-                        className="input"
-                        id={`inventory-quantity-${index}`}
-                        min="1"
-                        type="number"
-                        value={entry.quantity}
-                        onChange={(event) => {
-                          const next = [...draft.inventory];
-                          next[index] = {
-                            ...entry,
-                            quantity: Number(event.target.value),
-                          };
-                          update("inventory", next);
-                        }}
-                      />
+                      <label htmlFor={`inventory-quantity-${index}`}>
+                        Pack quantity
+                      </label>
+                      {countFree ? (
+                        <input
+                          className="input"
+                          id={`inventory-quantity-${index}`}
+                          readOnly
+                          type="text"
+                          value="No count needed"
+                        />
+                      ) : (
+                        <input
+                          className="input"
+                          id={`inventory-quantity-${index}`}
+                          min="1"
+                          type="number"
+                          value={entry.quantity}
+                          onChange={(event) => {
+                            const next = [...draft.inventory];
+                            next[index] = {
+                              ...entry,
+                              quantity: Number(event.target.value),
+                            };
+                            update("inventory", next);
+                          }}
+                        />
+                      )}
                     </div>
                   </div>
                   <div className="field">
@@ -951,8 +1025,9 @@ function EventForm({
                 >
                   <X aria-hidden="true" />
                 </button>
-              </div>
-            ))}
+                </div>
+              );
+            })}
             {draft.inventory.length === 0 ? (
               <p className={styles.inlineEmpty}>No items on the pack list yet.</p>
             ) : null}
