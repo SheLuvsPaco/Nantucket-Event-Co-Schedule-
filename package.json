@@ -6,8 +6,8 @@
     "postcss": "8.5.10"
   },
   "scripts": {
-    "dev": "next dev",
-    "dev:3003": "next dev -p 3003",
+    "dev": "env -u OPENAI_API_KEY next dev",
+    "dev:3003": "env -u OPENAI_API_KEY next dev -p 3003",
     "build": "next build",
     "start": "next start",
     "start:3003": "next start -p 3003",
@@ -22,7 +22,9 @@
     "check": "npm run lint && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.73",
     "@libsql/client": "^0.17.4",
+    "ai": "^6.0.208",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",

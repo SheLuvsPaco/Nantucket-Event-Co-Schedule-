@@ -13,6 +13,7 @@ const emptyVehicle: Omit<VehicleRecord, "id"> = {
   plate: "",
   color: "",
   notes: "",
+  imageUrl: null,
   active: true,
 };
 
@@ -27,6 +28,7 @@ export function VehicleManager({
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState(emptyVehicle);
   const [pending, setPending] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
   const filtered = useMemo(() => {
@@ -60,6 +62,7 @@ export function VehicleManager({
       plate: vehicle.plate ?? "",
       color: vehicle.color ?? "",
       notes: vehicle.notes ?? "",
+      imageUrl: vehicle.imageUrl ?? null,
       active: vehicle.active,
     });
     setError("");
@@ -94,6 +97,35 @@ export function VehicleManager({
       setError("We could not reach the schedule. Check your connection and save again.");
     } finally {
       setPending(false);
+    }
+  }
+
+  async function uploadImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setError("");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.error ?? "Failed to upload image.");
+        return;
+      }
+
+      setDraft((current) => ({ ...current, imageUrl: data.url }));
+    } catch {
+      setError("Network error while uploading image.");
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -229,6 +261,35 @@ export function VehicleManager({
                 </div>
               </div>
               <div className="field">
+                <label htmlFor="vehicle-image">Image URL</label>
+                <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                  <input
+                    className="input"
+                    id="vehicle-image"
+                    type="url"
+                    value={draft.imageUrl ?? ""}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        imageUrl: event.target.value,
+                      }))
+                    }
+                    placeholder="https://…"
+                    style={{ flex: 1 }}
+                  />
+                  <label className="button button-secondary" style={{ cursor: "pointer", margin: 0, padding: "0.5rem 1rem" }}>
+                    {uploading ? "Uploading..." : "Upload"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={uploadImage}
+                      disabled={uploading}
+                      style={{ display: "none" }}
+                    />
+                  </label>
+                </div>
+              </div>
+              <div className="field">
                 <label htmlFor="vehicle-notes">Fleet notes</label>
                 <textarea
                   className="textarea"
@@ -302,7 +363,11 @@ export function VehicleManager({
               key={vehicle.id}
             >
               <span className={styles.listIcon}>
-                <Truck aria-hidden="true" />
+                {vehicle.imageUrl ? (
+                  <img src={vehicle.imageUrl} alt={vehicle.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <Truck aria-hidden="true" />
+                )}
               </span>
               <div className={styles.listMain}>
                 <h2>{vehicle.name}</h2>

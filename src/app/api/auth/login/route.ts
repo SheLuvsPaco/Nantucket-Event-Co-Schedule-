@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     const [user] = await db
       .select()
       .from(users)
-      .where(eq(users.email, credentials.email))
+      .where(eq(users.name, credentials.name))
       .limit(1);
 
     const passwordMatches = await compare(
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
 
     if (!user || !user.active || !passwordMatches) {
       return Response.json(
-        { error: "Email or password is incorrect." },
+        { error: "Name or password is incorrect." },
         { status: 401 },
       );
     }

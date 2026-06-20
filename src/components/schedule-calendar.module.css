@@ -75,7 +75,7 @@
 }
 
 .day[data-today="true"] .dateNumber {
-  background: var(--orange);
+  background: var(--light-blue);
   color: var(--navy);
   font-weight: 850;
 }

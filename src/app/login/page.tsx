@@ -18,18 +18,18 @@ export default async function LoginPage() {
     ? [
         {
           label: "Admin",
-          email: process.env.SEED_ADMIN_EMAIL ?? "",
+          name: "Nantucket Event Admin",
           password: process.env.SEED_ADMIN_PASSWORD ?? "",
         },
         {
           label: "Owner",
-          email: process.env.SEED_OWNER_EMAIL ?? "",
-          password: process.env.SEED_OWNER_PASSWORD ?? "",
+          name: "Porter",
+          password: "Porter1234",
         },
         {
           label: "Staff",
-          email: process.env.SEED_STAFF_EMAIL ?? "",
-          password: process.env.SEED_STAFF_PASSWORD ?? "",
+          name: "Fuerte",
+          password: "Fuerte1234",
         },
       ]
     : [];

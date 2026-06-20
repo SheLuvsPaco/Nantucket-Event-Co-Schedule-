@@ -68,6 +68,7 @@ export const vehicles = sqliteTable(
     plate: text("plate"),
     color: text("color"),
     notes: text("notes"),
+    imageUrl: text("image_url"),
     active: integer("active", { mode: "boolean" }).notNull().default(true),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
@@ -97,6 +98,9 @@ export const events = sqliteTable(
     createdBy: text("created_by")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
+    packerUserId: text("packer_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -118,6 +122,7 @@ export const eventTimeline = sqliteTable(
       .notNull()
       .references(() => events.id, { onDelete: "cascade" }),
     time: text("time").notNull(),
+    endTime: text("end_time"),
     label: text("label").notNull(),
     details: text("details"),
     sortOrder: integer("sort_order").notNull().default(0),
@@ -135,6 +140,7 @@ export const eventInventory = sqliteTable(
       .notNull()
       .references(() => inventoryItems.id, { onDelete: "restrict" }),
     quantity: integer("quantity").notNull().default(1),
+    packed: integer("packed", { mode: "boolean" }).notNull().default(false),
     notes: text("notes"),
   },
   (table) => [
@@ -199,6 +205,7 @@ export const vehicleRelations = relations(vehicles, ({ many }) => ({
 
 export const eventsRelations = relations(events, ({ one, many }) => ({
   creator: one(users, { fields: [events.createdBy], references: [users.id] }),
+  packer: one(users, { fields: [events.packerUserId], references: [users.id] }),
   timeline: many(eventTimeline),
   inventory: many(eventInventory),
   staff: many(eventStaff),

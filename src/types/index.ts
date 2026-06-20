@@ -28,12 +28,14 @@ export type VehicleRecord = {
   plate: string | null;
   color: string | null;
   notes: string | null;
+  imageUrl: string | null;
   active: boolean;
 };
 
 export type TimelineRecord = {
   id: string;
   time: string;
+  endTime: string | null;
   label: string;
   details: string | null;
   sortOrder: number;
@@ -42,6 +44,7 @@ export type TimelineRecord = {
 export type EventInventoryRecord = {
   inventoryItemId: string;
   quantity: number;
+  packed: boolean;
   notes: string | null;
   item?: InventoryRecord;
 };
@@ -77,6 +80,8 @@ export type ScheduleEvent = {
   returnTime: string | null;
   notes: string | null;
   staffBrief: string | null;
+  packerUserId: string | null;
+  packer?: UserRecord | null;
   timeline: TimelineRecord[];
   inventory: EventInventoryRecord[];
   staff: EventStaffRecord[];

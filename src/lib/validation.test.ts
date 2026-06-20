@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest";
 import { eventSchema, inventorySchema, loginSchema } from "@/lib/validation";
 
 describe("validation schemas", () => {
-  it("normalizes login email addresses", () => {
+  it("normalizes login names", () => {
     const result = loginSchema.parse({
-      email: "  OWNER@PORTER.LOCAL ",
+      name: "  Porter ",
       password: "ChangeMeOwner123!",
     });
-    expect(result.email).toBe("owner@porter.local");
+    expect(result.name).toBe("Porter");
   });
 
   it("prevents negative inventory counts", () => {

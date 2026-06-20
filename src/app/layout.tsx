@@ -38,7 +38,7 @@ export default function RootLayout({
       lang="en"
       className={`${instrumentSans.variable} ${newsreader.variable}`}
     >
-      <body>
+      <body suppressHydrationWarning>
         <a className="skip-link" href="#main-content">
           Skip to schedule
         </a>

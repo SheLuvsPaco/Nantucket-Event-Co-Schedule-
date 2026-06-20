@@ -39,7 +39,7 @@
 
 .search input:focus {
   border-color: var(--navy);
-  box-shadow: 0 0 0 3px oklch(30% 0.075 245 / 0.12);
+  box-shadow: 0 0 0 3px rgba(91, 153, 214, 0.12);
   outline: none;
 }
 
@@ -169,7 +169,7 @@
 }
 
 .cardTop > span {
-  color: var(--orange);
+  color: var(--light-blue);
   font-size: 0.68rem;
   font-weight: 850;
   letter-spacing: 0.08em;

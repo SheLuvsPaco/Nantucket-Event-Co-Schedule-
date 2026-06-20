@@ -11,20 +11,32 @@ import {
   UsersRound,
 } from "lucide-react";
 import { formatLongDate, formatTime } from "@/lib/date";
+import {
+  getStaffCardStart,
+  sortStaffDayEvents,
+} from "@/lib/schedule-order";
+import { isCountFreePackItem } from "@/lib/pack-list";
 import type { ScheduleEvent } from "@/types";
+import { PackItemCheckbox } from "./pack-item-checkbox";
 import styles from "./staff-day-view.module.css";
 
 export function StaffDayView({
   backHref,
   date,
+  emptyDescription = "There are no events on this date.",
+  emptyTitle = "No work scheduled",
   events,
   sessionUserId,
 }: {
   backHref: string;
   date: string;
+  emptyDescription?: string;
+  emptyTitle?: string;
   events: ScheduleEvent[];
   sessionUserId: string;
 }) {
+  const orderedEvents = sortStaffDayEvents(events);
+
   return (
     <div className={`page-shell ${styles.page}`}>
       <div className={styles.header}>
@@ -39,23 +51,31 @@ export function StaffDayView({
         </p>
       </div>
 
-      {events.length === 0 ? (
+      {orderedEvents.length === 0 ? (
         <div className={`panel empty-state ${styles.empty}`}>
           <div>
             <CalendarX2 aria-hidden="true" />
-            <h2>No work scheduled</h2>
-            <p className="muted">There are no events on this date.</p>
+            <h2>{emptyTitle}</h2>
+            <p className="muted">{emptyDescription}</p>
           </div>
         </div>
       ) : (
         <div className={styles.eventList}>
-          {events.map((event, eventIndex) => (
+          {orderedEvents.map((event, eventIndex) => {
+            const cardStart = getStaffCardStart(event);
+            const displayVenue =
+              event.venue?.trim().toLowerCase() ===
+              event.title.trim().toLowerCase()
+                ? null
+                : event.venue;
+
+            return (
             <article className={styles.event} key={event.id}>
               <header className={styles.eventHeader}>
-                <div>
+                <div className={styles.eventStart}>
                   <p className={styles.eventNumber}>Job {eventIndex + 1}</p>
-                  <p className={styles.callLabel}>Crew call</p>
-                  <p className={styles.callTime}>{formatTime(event.callTime)}</p>
+                  <p className={styles.callLabel}>{cardStart.label}</p>
+                  <p className={styles.callTime}>{formatTime(cardStart.time)}</p>
                 </div>
                 <div className={styles.eventTitle}>
                   <span
@@ -64,11 +84,11 @@ export function StaffDayView({
                     {event.status}
                   </span>
                   <h2>{event.title}</h2>
-                  {event.venue || event.address ? (
+                  {displayVenue || event.address ? (
                     <p>
                       <MapPin aria-hidden="true" />
                       <span>
-                        {event.venue ? <strong>{event.venue}</strong> : null}
+                        {displayVenue ? <strong>{displayVenue}</strong> : null}
                         {event.address ? <span>{event.address}</span> : null}
                       </span>
                     </p>
@@ -86,6 +106,17 @@ export function StaffDayView({
                 </section>
               ) : null}
 
+              {event.notes ? (
+                <section className={styles.jobInstructions}>
+                  <StickyNote aria-hidden="true" />
+                  <div>
+                    <p>Read before starting</p>
+                    <h3>Job instructions</h3>
+                    <div>{event.notes}</div>
+                  </div>
+                </section>
+              ) : null}
+
               <div className={styles.sections}>
                 <section className={styles.section}>
                   <div className={styles.sectionHeading}>
@@ -99,7 +130,12 @@ export function StaffDayView({
                     <ol className={styles.timeline}>
                       {event.timeline.map((entry) => (
                         <li key={entry.id}>
-                          <time>{formatTime(entry.time)}</time>
+                          <time>
+                            <span>{formatTime(entry.time)}</span>
+                            {entry.endTime ? (
+                              <small>to {formatTime(entry.endTime)}</small>
+                            ) : null}
+                          </time>
                           <div>
                             <strong>{entry.label}</strong>
                             {entry.details ? <p>{entry.details}</p> : null}
@@ -166,16 +202,32 @@ export function StaffDayView({
                   {event.inventory.length ? (
                     <div className={styles.packList}>
                       {event.inventory.map((entry) => {
+                        const countFree = isCountFreePackItem(entry.item?.name);
                         const shortage =
-                          entry.item && entry.quantity > entry.item.quantity;
+                          !countFree &&
+                          entry.item &&
+                          entry.quantity > entry.item.quantity;
                         return (
                           <div
                             className={styles.packItem}
                             data-shortage={shortage}
                             key={entry.inventoryItemId}
+                            style={{ display: "flex", alignItems: "flex-start", opacity: entry.packed ? 0.5 : 1 }}
                           >
-                            <span className={styles.quantity}>{entry.quantity}</span>
-                            <div>
+                            <PackItemCheckbox
+                              eventId={event.id}
+                              inventoryItemId={entry.inventoryItemId}
+                              initialPacked={entry.packed}
+                            />
+                            {countFree ? null : (
+                              <span
+                                className={styles.quantity}
+                                style={{ marginTop: "0.125rem" }}
+                              >
+                                {entry.quantity}
+                              </span>
+                            )}
+                            <div style={{ textDecoration: entry.packed ? "line-through" : "none" }}>
                               <strong>{entry.item?.name}</strong>
                               <span>
                                 {entry.item?.size || entry.item?.category || "Item"}
@@ -234,21 +286,10 @@ export function StaffDayView({
                   )}
                 </section>
 
-                {event.notes ? (
-                  <section className={`${styles.section} ${styles.notes}`}>
-                    <div className={styles.sectionHeading}>
-                      <StickyNote aria-hidden="true" />
-                      <div>
-                        <p>Final details</p>
-                        <h3>Notes</h3>
-                      </div>
-                    </div>
-                    <p>{event.notes}</p>
-                  </section>
-                ) : null}
               </div>
             </article>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

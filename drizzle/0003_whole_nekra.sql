@@ -1,0 +1,1 @@
+ALTER TABLE `event_timeline` ADD `end_time` text;
