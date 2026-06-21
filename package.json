@@ -2,13 +2,18 @@
   "name": "porter",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "overrides": {
     "postcss": "8.5.10"
   },
   "scripts": {
     "dev": "env -u OPENAI_API_KEY next dev",
     "dev:3003": "env -u OPENAI_API_KEY next dev -p 3003",
-    "build": "next build",
+    "pwa:prepare": "node scripts/build-service-worker.mjs",
+    "pwa:verify": "node scripts/verify-pwa.mjs",
+    "build": "npm run pwa:prepare && next build",
     "start": "next start",
     "start:3003": "next start -p 3003",
     "lint": "eslint .",
@@ -18,12 +23,14 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx scripts/seed.ts",
+    "db:copy": "tsx scripts/copy-database.ts",
     "db:setup": "npm run db:migrate && npm run db:seed",
-    "check": "npm run lint && npm run typecheck && npm run test && npm run build"
+    "check": "npm run lint && npm run typecheck && npm run test && npm run build && npm run pwa:verify"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.73",
     "@libsql/client": "^0.17.4",
+    "@vercel/blob": "^2.4.1",
     "ai": "^6.0.208",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",

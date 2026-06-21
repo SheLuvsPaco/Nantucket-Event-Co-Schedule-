@@ -13,6 +13,7 @@ describe("Quick Add parsing", () => {
     const parsed = quickAddOutputSchema.parse({
       events: [
         {
+          eventId: null,
           title: null,
           locations: [],
           eventDate: "2026-06-21",
@@ -57,6 +58,7 @@ describe("Quick Add parsing", () => {
       {
         events: [
           {
+            eventId: null,
             title: "Breakdown",
             locations: [],
             eventDate: "2026-06-21",
@@ -134,6 +136,7 @@ describe("Quick Add parsing", () => {
       {
         events: [
           {
+            eventId: null,
             title: "Install",
             locations: ["Galley Beach"],
             eventDate: "2026-06-19",
@@ -176,6 +179,7 @@ describe("Quick Add parsing", () => {
       {
         events: [
           {
+            eventId: null,
             title: "Galley Beach",
             locations: ["Galley Beach"],
             eventDate: "2026-06-19",
@@ -191,6 +195,7 @@ describe("Quick Add parsing", () => {
             timeline: [],
           },
           {
+            eventId: null,
             title: "Wauwinet",
             locations: ["Wauwinet"],
             eventDate: "2026-06-19",
@@ -227,6 +232,7 @@ describe("Quick Add parsing", () => {
       {
         events: [
           {
+            eventId: null,
             title: "Install 12x24 stage",
             locations: ["Wauwinet"],
             eventDate: "2026-06-19",
@@ -275,6 +281,7 @@ describe("Quick Add parsing", () => {
       {
         events: [
           {
+            eventId: null,
             title: null,
             locations: ["Nancy Ann", "45 Tomahawk", "Wauwinet"],
             eventDate: "2026-06-19",
@@ -308,6 +315,7 @@ describe("Quick Add parsing", () => {
       {
         events: [
           {
+            eventId: null,
             title: null,
             locations: [],
             eventDate: "2026-06-19",
@@ -339,6 +347,7 @@ describe("Quick Add parsing", () => {
       {
         events: [
           {
+            eventId: null,
             title: "Galley Beach",
             locations: ["Galley Beach"],
             eventDate: "2026-06-19",

@@ -76,7 +76,11 @@ export function AppNav({
   );
 }
 
-export function LogoutButton() {
+export function LogoutButton({
+  mobileMenu = false,
+}: {
+  mobileMenu?: boolean;
+}) {
   const router = useRouter();
 
   async function logout() {
@@ -86,7 +90,11 @@ export function LogoutButton() {
   }
 
   return (
-    <button className="nav-link logout-button" onClick={logout} type="button">
+    <button
+      className={mobileMenu ? "mobile-logout-button" : "nav-link logout-button"}
+      onClick={logout}
+      type="button"
+    >
       <LogOut aria-hidden="true" />
       <span>Sign out</span>
     </button>

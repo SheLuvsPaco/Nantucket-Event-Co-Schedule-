@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { inventoryItems } from "@/db/schema";
 import { requireApiSession } from "@/lib/auth";
 import { apiError } from "@/lib/http";
+import { removeReplacedManagedImage } from "@/lib/image-storage";
 import { inventorySchema } from "@/lib/validation";
 
 type Context = { params: Promise<{ id: string }> };
@@ -14,6 +15,16 @@ export async function PATCH(request: Request, context: Context) {
   try {
     const { id } = await context.params;
     const input = inventorySchema.parse(await request.json());
+    const [existingItem] = await db
+      .select({ imageUrl: inventoryItems.imageUrl })
+      .from(inventoryItems)
+      .where(eq(inventoryItems.id, id))
+      .limit(1);
+
+    if (!existingItem) {
+      return Response.json({ error: "Inventory item not found." }, { status: 404 });
+    }
+
     const [item] = await db
       .update(inventoryItems)
       .set({ ...input, updatedAt: new Date() })
@@ -23,6 +34,9 @@ export async function PATCH(request: Request, context: Context) {
     if (!item) {
       return Response.json({ error: "Inventory item not found." }, { status: 404 });
     }
+
+    await removeReplacedManagedImage(existingItem.imageUrl, item.imageUrl);
+
     return Response.json(item);
   } catch (error) {
     return apiError(error);

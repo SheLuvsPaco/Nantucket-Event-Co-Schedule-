@@ -14,6 +14,14 @@
   border-bottom: 1px solid var(--line);
 }
 
+.monthTitle {
+  margin: 0;
+  color: var(--navy);
+  font-size: 1.15rem;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+
 .controls {
   display: flex;
   gap: 8px;

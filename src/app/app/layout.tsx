@@ -39,7 +39,18 @@ export default async function AppLayout({
       <main className="app-main" id="main-content">
         <header className="mobile-header">
           <CompanyLogo className="mobile-brand-logo" priority />
-          <span className="mobile-role">{session.role.toLowerCase()}</span>
+          <details className="mobile-account">
+            <summary className="mobile-role">
+              {session.role.toLowerCase()}
+            </summary>
+            <div className="mobile-account-menu">
+              <div>
+                <strong>{session.name}</strong>
+                <span>{session.role.toLowerCase()}</span>
+              </div>
+              <LogoutButton mobileMenu />
+            </div>
+          </details>
         </header>
         {children}
       </main>

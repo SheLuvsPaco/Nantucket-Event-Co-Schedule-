@@ -1,8 +1,35 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, X, Tent } from "lucide-react";
+import { Sparkles, X, Tent, Mic } from "lucide-react";
+import styles from "./quick-add-modal.module.css";
+
+type SpeechRecognitionEventLike = {
+  resultIndex: number;
+  results: ArrayLike<{
+    0: {
+      transcript: string;
+    };
+  }>;
+};
+
+type SpeechRecognitionLike = {
+  continuous: boolean;
+  interimResults: boolean;
+  start: () => void;
+  stop: () => void;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+};
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+type SpeechRecognitionWindow = Window & {
+  SpeechRecognition?: SpeechRecognitionConstructor;
+  webkitSpeechRecognition?: SpeechRecognitionConstructor;
+};
 
 const loadingMessages = [
   "Reading your message...",
@@ -20,6 +47,78 @@ export function QuickAddModal({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState("");
   const [successCount, setSuccessCount] = useState<number | null>(null);
   const [messageIndex, setMessageIndex] = useState(0);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !loading) onClose();
+    };
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [loading, onClose]);
+
+  useEffect(() => {
+    const speechWindow = window as SpeechRecognitionWindow;
+    const SpeechRecognition =
+      speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognitionRef.current = recognition;
+
+    return () => {
+      recognition.onresult = null;
+      recognition.onend = null;
+      recognition.onerror = null;
+      try {
+        recognition.stop();
+      } catch {
+        // The browser may already have stopped the recognition session.
+      }
+      recognitionRef.current = null;
+    };
+  }, []);
+
+  const startListening = () => {
+    if (!recognitionRef.current) {
+      alert("Voice input is not supported in this browser. Please use Chrome or Safari.");
+      return;
+    }
+    try {
+      recognitionRef.current.start();
+      setIsListening(true);
+      recognitionRef.current.onresult = (event) => {
+        let newTranscript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          newTranscript += event.results[i][0].transcript;
+        }
+        if (newTranscript) {
+          setText((prev) => (prev ? prev + "\n" + newTranscript : newTranscript));
+        }
+      };
+      recognitionRef.current.onend = () => setIsListening(false);
+      recognitionRef.current.onerror = () => setIsListening(false);
+    } catch {
+      // Ignore if already started
+    }
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
+  };
 
   useEffect(() => {
     if (!loading) return;
@@ -69,110 +168,90 @@ export function QuickAddModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div style={{
-      position: "fixed", top: 0, left: 0, width: "100%", height: "100%",
-      backgroundColor: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)",
-      zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center"
-    }}>
-      <style>{`
-        @keyframes bounce-tent {
-          0%, 100% { transform: translateY(0) scale(1); }
-          50% { transform: translateY(-12px) scale(1.05); }
-        }
-        .tent-bounce {
-          animation: bounce-tent 1.5s infinite ease-in-out;
-        }
-        @keyframes fade-in {
-          0% { opacity: 0; transform: translateY(4px); }
-          100% { opacity: 1; transform: translateY(0); }
-        }
-        .fade-in-text {
-          animation: fade-in 0.4s ease-out;
-        }
-      `}</style>
-
-      <div style={{
-        backgroundColor: "var(--surface)", borderRadius: "12px", width: "100%", maxWidth: "600px",
-        padding: "24px", display: "flex", flexDirection: "column", gap: "16px",
-        boxShadow: "var(--shadow-md)", position: "relative",
-        overflow: "hidden"
-      }}>
+    <div
+      aria-labelledby="quick-add-title"
+      aria-modal="true"
+      className={styles.backdrop}
+      onPointerDown={(event) => {
+        if (event.target === event.currentTarget && !loading) onClose();
+      }}
+      role="dialog"
+    >
+      <div className={styles.modal}>
         <button
+          aria-label="Close Quick Add"
+          className={styles.closeButton}
+          disabled={loading}
           onClick={onClose}
-          style={{ position: "absolute", top: "16px", right: "16px", background: "none", border: "none", cursor: "pointer", zIndex: 10 }}
+          type="button"
         >
-          <X size={20} />
+          <X aria-hidden="true" />
         </button>
 
-        <h2 style={{ fontSize: "18px", fontWeight: "600", display: "flex", alignItems: "center", gap: "8px", color: "var(--ink)" }}>
-          <Sparkles size={20} color="var(--navy)" />
+        <h2 className={styles.title} id="quick-add-title">
+          <Sparkles aria-hidden="true" />
           AI Quick Add
         </h2>
 
-        <p style={{ fontSize: "14px", color: "var(--ink-soft)" }}>
+        <p className={styles.description}>
           Paste your unstructured schedule here (e.g., from WhatsApp). The AI will extract dates, times, crew, trucks, and items to automatically create your events.
         </p>
 
         {successCount !== null ? (
-          <div style={{ padding: "16px", backgroundColor: "#e6f4ea", color: "#1e8e3e", borderRadius: "8px", fontWeight: "500", textAlign: "center" }}>
+          <div className={styles.success}>
             Successfully created {successCount} events! Refreshing schedule...
           </div>
         ) : (
-          <div style={{ position: "relative" }}>
-            {/* Loading Overlay */}
+          <div className={styles.composer}>
             {loading && (
-              <div style={{
-                position: "absolute", top: 0, left: 0, width: "100%", height: "100%",
-                backgroundColor: "rgba(255, 255, 255, 0.8)",
-                backdropFilter: "blur(2px)", zIndex: 5,
-                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                borderRadius: "8px"
-              }}>
-                <div className="tent-bounce" style={{ color: "var(--navy)", marginBottom: "16px" }}>
-                  <Tent size={48} strokeWidth={1.5} />
+              <div className={styles.loadingOverlay}>
+                <div className={styles.loadingTent}>
+                  <Tent aria-hidden="true" strokeWidth={1.5} />
                 </div>
                 <div
                   key={messageIndex}
-                  className="fade-in-text"
-                  style={{ color: "var(--ink)", fontWeight: "500", fontSize: "15px", textAlign: "center" }}
+                  className={styles.loadingMessage}
                 >
                   {loadingMessages[messageIndex]}
                 </div>
               </div>
             )}
 
-            <div style={{
-              display: "flex", flexDirection: "column", gap: "16px",
-              opacity: loading ? 0.3 : 1,
-              pointerEvents: loading ? "none" : "auto",
-              transition: "opacity 0.3s ease"
-            }}>
+            <div className={styles.content} data-loading={loading}>
               <textarea
+                aria-label="Schedule message"
+                className={styles.textarea}
                 value={text}
                 onChange={e => setText(e.target.value)}
                 placeholder="June 19th Friday&#10;Warehouse call 7AM:&#10;Depart for galley 715AM&#10;- 730AM-1030AM Install at Galley Beach..."
-                style={{
-                  width: "100%", minHeight: "250px", padding: "12px", borderRadius: "8px",
-                  border: "1px solid var(--line)", backgroundColor: "var(--paper)",
-                  color: "var(--ink)",
-                  fontSize: "14px", fontFamily: "monospace", resize: "vertical"
-                }}
               />
 
               {error && (
-                <div style={{ color: "var(--red)", fontSize: "14px" }}>
+                <p className={styles.error} role="alert">
                   {error}
-                </div>
+                </p>
               )}
 
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <div className={styles.actions}>
+                <button
+                  type="button"
+                  onPointerDown={startListening}
+                  onPointerUp={stopListening}
+                  onPointerCancel={stopListening}
+                  onPointerLeave={stopListening}
+                  className={`button ${styles.voiceButton}`}
+                  data-listening={isListening}
+                >
+                  <Mic aria-hidden="true" />
+                  {isListening ? "Listening..." : "Hold to Speak"}
+                </button>
                 <button
                   className="button button-primary"
                   onClick={handleParse}
                   disabled={loading || !text.trim()}
-                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                  type="button"
                 >
-                  <Sparkles size={16} />
+                  <Sparkles aria-hidden="true" />
                   Magic Create
                 </button>
               </div>
