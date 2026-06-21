@@ -900,31 +900,39 @@ function EventForm({
           icon={<Box aria-hidden="true" />}
           title="Pack list"
         >
-          {draft.id && (
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "-1.5rem", position: "relative", zIndex: 10 }}>
-              <a href={`/print/packlist/${draft.id}`} target="_blank" className="button button-secondary" style={{ padding: "6px 12px", fontSize: "13px" }}>
-                <FileText aria-hidden="true" style={{ width: 16, height: 16, marginRight: 6 }} />
+          <div className={styles.packListHeader}>
+            <div className="field">
+              <label htmlFor="packer-user-id">Assigned Packer</label>
+              <select
+                className="input"
+                id="packer-user-id"
+                value={draft.packerUserId}
+                onChange={(event) => update("packerUserId", event.target.value)}
+              >
+                <option value="">No specific packer assigned</option>
+                {people
+                  .filter(
+                    (person) =>
+                      person.active || person.id === draft.packerUserId,
+                  )
+                  .map((person) => (
+                    <option key={person.id} value={person.id}>
+                      {person.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+            {draft.id ? (
+              <a
+                className={`button button-secondary ${styles.packListExport}`}
+                href={`/print/packlist/${draft.id}`}
+                rel="noreferrer"
+                target="_blank"
+              >
+                <FileText aria-hidden="true" />
                 Export to PDF
               </a>
-            </div>
-          )}
-          <div className="field" style={{ marginBottom: "1.5rem" }}>
-            <label htmlFor="packer-user-id">Assigned Packer</label>
-            <select
-              className="input"
-              id="packer-user-id"
-              value={draft.packerUserId}
-              onChange={(e) => update("packerUserId", e.target.value)}
-            >
-              <option value="">No specific packer assigned</option>
-              {people
-                .filter((p) => p.active || p.id === draft.packerUserId)
-                .map((person) => (
-                  <option key={person.id} value={person.id}>
-                    {person.name}
-                  </option>
-                ))}
-            </select>
+            ) : null}
           </div>
           <div className={styles.rows}>
             {draft.inventory.map((entry, index) => {

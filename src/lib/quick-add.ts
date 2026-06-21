@@ -7,6 +7,7 @@ const nullableString = z.string().nullable();
 export const quickAddOutputSchema = z.object({
   events: z.array(
     z.object({
+      eventId: z.string().nullable().describe("If updating an existing event, provide its exact ID here. Leave null for new events."),
       title: nullableString.describe(
         "The work location, or an arrow-separated route when the crew goes to multiple locations.",
       ),
@@ -57,6 +58,7 @@ export const quickAddOutputSchema = z.object({
 export type QuickAddOutput = z.infer<typeof quickAddOutputSchema>;
 
 export type PreparedQuickAddEvent = {
+  eventId: string | null;
   title: string;
   eventDate: string;
   venue: string | null;
@@ -421,6 +423,7 @@ export function prepareQuickAddEvents(
 
     return [
       {
+        eventId: event.eventId,
         title: locationTitle,
         eventDate,
         venue,

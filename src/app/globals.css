@@ -41,6 +41,7 @@ body {
   margin: 0;
   min-height: 100vh;
   background: var(--paper);
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -260,6 +261,9 @@ img {
 }
 
 .mobile-role {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
   padding: 6px 9px;
   border-radius: 999px;
   background: var(--navy);
@@ -268,6 +272,78 @@ img {
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.mobile-account {
+  position: relative;
+}
+
+.mobile-account > summary {
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.mobile-account > summary::-webkit-details-marker {
+  display: none;
+}
+
+.mobile-account-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 50;
+  display: grid;
+  width: min(260px, calc(100vw - 32px));
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+
+.mobile-account-menu strong,
+.mobile-account-menu span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-account-menu strong {
+  font-size: 0.9rem;
+}
+
+.mobile-account-menu div > span {
+  margin-top: 3px;
+  color: var(--ink-faint);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mobile-logout-button {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  gap: 9px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--paper);
+  cursor: pointer;
+  color: var(--ink);
+  font-weight: 750;
+  text-align: left;
+}
+
+.mobile-logout-button svg {
+  width: 18px;
+  height: 18px;
+  color: var(--red);
 }
 
 .mobile-nav {
@@ -479,6 +555,7 @@ h3 {
 
 .field {
   display: grid;
+  min-width: 0;
   gap: 7px;
 }
 
@@ -495,6 +572,8 @@ h3 {
 .select,
 .textarea {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: 46px;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -508,6 +587,18 @@ h3 {
 .input,
 .select {
   padding: 0 13px;
+}
+
+.input[type="date"],
+.input[type="time"] {
+  display: block;
+  min-inline-size: 0;
+}
+
+.input[type="date"]::-webkit-date-and-time-value,
+.input[type="time"]::-webkit-date-and-time-value {
+  min-width: 0;
+  text-align: left;
 }
 
 .textarea {
@@ -533,7 +624,16 @@ h3 {
 
 .form-grid {
   display: grid;
+  min-width: 0;
   gap: 16px;
+}
+
+@media (max-width: 719px) {
+  .input,
+  .select,
+  .textarea {
+    font-size: 16px;
+  }
 }
 
 .form-grid-2,

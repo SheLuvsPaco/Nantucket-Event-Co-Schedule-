@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -20,6 +23,10 @@ import type { ScheduleEvent } from "@/types";
 import { PackItemCheckbox } from "./pack-item-checkbox";
 import styles from "./staff-day-view.module.css";
 
+function subscribeToClientState() {
+  return () => {};
+}
+
 export function StaffDayView({
   backHref,
   date,
@@ -35,7 +42,40 @@ export function StaffDayView({
   events: ScheduleEvent[];
   sessionUserId: string;
 }) {
+  const isClient = useSyncExternalStore(
+    subscribeToClientState,
+    () => true,
+    () => false,
+  );
+  const [currentTime, setCurrentTime] = useState(() => new Date());
+
+  useEffect(() => {
+    const interval = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   const orderedEvents = sortStaffDayEvents(events);
+
+  let activeEventIndex = 0;
+  const isToday = new Date().toISOString().split("T")[0] === date;
+  if (isToday) {
+    const currentMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
+    for (let i = 0; i < orderedEvents.length; i++) {
+      const cardStart = getStaffCardStart(orderedEvents[i]);
+      if (cardStart.time) {
+        const [hh, mm] = cardStart.time.split(":");
+        const eventMinutes = parseInt(hh, 10) * 60 + parseInt(mm, 10);
+        if (currentMinutes >= eventMinutes) {
+          activeEventIndex = i;
+        } else {
+          break;
+        }
+      }
+    }
+  } else if (new Date(date) < new Date()) {
+    // Past day, focus on the last event
+    activeEventIndex = orderedEvents.length - 1;
+  }
 
   return (
     <div className={`page-shell ${styles.page}`}>
@@ -69,55 +109,37 @@ export function StaffDayView({
                 ? null
                 : event.venue;
 
-            return (
-            <article className={styles.event} key={event.id}>
-              <header className={styles.eventHeader}>
-                <div className={styles.eventStart}>
-                  <p className={styles.eventNumber}>Job {eventIndex + 1}</p>
-                  <p className={styles.callLabel}>{cardStart.label}</p>
-                  <p className={styles.callTime}>{formatTime(cardStart.time)}</p>
-                </div>
-                <div className={styles.eventTitle}>
-                  <span
-                    className={`status-pill status-${event.status.toLowerCase()}`}
-                  >
-                    {event.status}
-                  </span>
-                  <h2>{event.title}</h2>
-                  {displayVenue || event.address ? (
-                    <p>
-                      <MapPin aria-hidden="true" />
-                      <span>
-                        {displayVenue ? <strong>{displayVenue}</strong> : null}
-                        {event.address ? <span>{event.address}</span> : null}
-                      </span>
-                    </p>
-                  ) : null}
-                </div>
-              </header>
+            const isFocus = eventIndex === activeEventIndex;
 
-              {event.staffBrief ? (
-                <section className={styles.brief}>
-                  <AlertTriangle aria-hidden="true" />
-                  <div>
-                    <h3>Read this first</h3>
-                    <p>{event.staffBrief}</p>
-                  </div>
-                </section>
-              ) : null}
+            let cardClass = styles.event;
+            if (isClient && isFocus) {
+              cardClass += ` ${styles.eventFocus}`;
+            }
 
-              {event.notes ? (
-                <section className={styles.jobInstructions}>
-                  <StickyNote aria-hidden="true" />
-                  <div>
-                    <p>Read before starting</p>
-                    <h3>Job instructions</h3>
-                    <div>{event.notes}</div>
-                  </div>
-                </section>
-              ) : null}
+            const cardBody = (
+              <>
+                {event.staffBrief ? (
+                  <section className={styles.brief}>
+                    <AlertTriangle aria-hidden="true" />
+                    <div>
+                      <h3>Read this first</h3>
+                      <p>{event.staffBrief}</p>
+                    </div>
+                  </section>
+                ) : null}
 
-              <div className={styles.sections}>
+                {event.notes ? (
+                  <section className={styles.jobInstructions}>
+                    <StickyNote aria-hidden="true" />
+                    <div>
+                      <p>Read before starting</p>
+                      <h3>Job instructions</h3>
+                      <div>{event.notes}</div>
+                    </div>
+                  </section>
+                ) : null}
+
+                <div className={styles.sections}>
                 <section className={styles.section}>
                   <div className={styles.sectionHeading}>
                     <Clock3 aria-hidden="true" />
@@ -286,6 +308,39 @@ export function StaffDayView({
                   )}
                 </section>
 
+              </div>
+              </>
+            );
+
+            return (
+            <article className={cardClass} key={event.id}>
+              <header className={styles.eventHeader}>
+                <div className={styles.eventStart}>
+                  <p className={styles.eventNumber}>Job {eventIndex + 1}</p>
+                  <p className={styles.callLabel}>{cardStart.label}</p>
+                  <p className={styles.callTime}>{formatTime(cardStart.time)}</p>
+                </div>
+                <div className={styles.eventTitle}>
+                  <span
+                    className={`status-pill status-${event.status.toLowerCase()}`}
+                  >
+                    {event.status}
+                  </span>
+                  <h2>{event.title}</h2>
+                  {displayVenue || event.address ? (
+                    <p>
+                      <MapPin aria-hidden="true" />
+                      <span>
+                        {displayVenue ? <strong>{displayVenue}</strong> : null}
+                        {event.address ? <span>{event.address}</span> : null}
+                      </span>
+                    </p>
+                  ) : null}
+                </div>
+              </header>
+
+              <div className={styles.focusBody}>
+                {cardBody}
               </div>
             </article>
             );

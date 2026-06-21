@@ -37,6 +37,7 @@ export function InventoryManager({
   const [draft, setDraft] = useState(emptyItem);
   const [pending, setPending] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   const categories = useMemo(
@@ -77,7 +78,24 @@ export function InventoryManager({
     setError("");
   }
 
-  function closeEditor() {
+  async function removePendingImage(url: string) {
+    try {
+      await fetch("/api/upload", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+    } finally {
+      setPendingImageUrl((current) => (current === url ? null : current));
+    }
+  }
+
+  function closeEditor(preservePendingImage = false) {
+    if (pendingImageUrl && !preservePendingImage) {
+      void removePendingImage(pendingImageUrl);
+    } else if (preservePendingImage) {
+      setPendingImageUrl(null);
+    }
     setEditing(null);
     setCreating(false);
     setError("");
@@ -87,6 +105,10 @@ export function InventoryManager({
     setPending(true);
     setError("");
     try {
+      if (pendingImageUrl && draft.imageUrl !== pendingImageUrl) {
+        await removePendingImage(pendingImageUrl);
+      }
+
       const response = await fetch(
         editing ? `/api/inventory/${editing.id}` : "/api/inventory",
         {
@@ -100,7 +122,7 @@ export function InventoryManager({
         setError(data.error ?? "The inventory item could not be saved.");
         return;
       }
-      closeEditor();
+      closeEditor(true);
       router.refresh();
     } catch {
       setError("We could not reach the schedule. Check your connection and save again.");
@@ -124,13 +146,23 @@ export function InventoryManager({
         body: formData,
       });
 
-      const data = await response.json();
+      const data = (await response.json()) as { error?: string; url?: string };
       if (!response.ok) {
         setError(data.error ?? "Failed to upload image.");
         return;
       }
 
-      setDraft((current) => ({ ...current, imageUrl: data.url }));
+      if (!data.url) {
+        setError("The image upload did not return a URL.");
+        return;
+      }
+
+      const uploadedUrl = data.url;
+      if (pendingImageUrl && pendingImageUrl !== uploadedUrl) {
+        void removePendingImage(pendingImageUrl);
+      }
+      setPendingImageUrl(uploadedUrl);
+      setDraft((current) => ({ ...current, imageUrl: uploadedUrl }));
     } catch {
       setError("Network error while uploading image.");
     } finally {
@@ -207,7 +239,7 @@ export function InventoryManager({
             <button
               aria-label="Close inventory editor"
               className="icon-button"
-              onClick={closeEditor}
+              onClick={() => closeEditor()}
               type="button"
             >
               <X aria-hidden="true" />
@@ -294,7 +326,7 @@ export function InventoryManager({
                       {uploading ? "Uploading..." : "Upload"}
                       <input
                         type="file"
-                        accept="image/*"
+                        accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
                         onChange={uploadImage}
                         disabled={uploading}
                         style={{ display: "none" }}

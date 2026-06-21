@@ -181,6 +181,7 @@
 }
 
 .sectionContent {
+  min-width: 0;
   padding: 18px 16px;
   border-top: 1px solid var(--line);
 }
@@ -523,7 +524,12 @@
 
 .formRow {
   display: grid;
-  grid-template-columns: 32px minmax(0, 1fr) 44px;
+  min-width: 0;
+  grid-template-areas:
+    "number remove"
+    "fields fields";
+  grid-template-columns: 32px 44px;
+  justify-content: space-between;
   gap: 10px;
   align-items: start;
   padding: 14px;
@@ -533,11 +539,12 @@
 }
 
 .rowNumber {
+  grid-area: number;
   display: grid;
   width: 30px;
   height: 30px;
   place-items: center;
-  margin-top: 7px;
+  margin-top: 0;
   border-radius: 50%;
   background: var(--navy);
   color: var(--paper);
@@ -546,7 +553,24 @@
 }
 
 .rowFields {
+  grid-area: fields;
   min-width: 0;
+}
+
+.formRow > :global(.icon-button) {
+  grid-area: remove;
+  justify-self: end;
+}
+
+.packListHeader {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.packListExport {
+  justify-self: start;
 }
 
 .inlineEmpty {
@@ -581,6 +605,45 @@
   margin-left: auto;
 }
 
+@media (max-width: 480px) {
+  .editor {
+    padding-bottom: 100px;
+  }
+
+  .editorSection summary {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    gap: 9px;
+    padding-inline: 12px;
+  }
+
+  .sectionContent {
+    padding: 14px 12px;
+  }
+
+  .formRow {
+    padding: 12px;
+  }
+
+  .saveBar {
+    right: 10px;
+    left: 10px;
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .saveBar :global(.button) {
+    min-width: 0;
+    flex: 1 1 0;
+    padding-inline: 9px;
+    font-size: 0.84rem;
+  }
+
+  .saveBar :global(.button) svg {
+    width: 17px;
+    height: 17px;
+  }
+}
+
 @media (min-width: 760px) {
   .clockPopover {
     top: auto;
@@ -593,6 +656,25 @@
 
   .editorSection summary {
     padding: 14px 20px;
+  }
+
+  .formRow {
+    grid-template-areas: "number fields remove";
+    grid-template-columns: 32px minmax(0, 1fr) 44px;
+    justify-content: normal;
+  }
+
+  .rowNumber {
+    margin-top: 7px;
+  }
+
+  .packListHeader {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .packListExport {
+    justify-self: end;
   }
 }
 

@@ -1,6 +1,6 @@
-import { openai } from "@ai-sdk/openai";
+import { createOpenAI } from "@ai-sdk/openai";
 import { APICallError, generateText, NoOutputGeneratedError, Output } from "ai";
-import { eq } from "drizzle-orm";
+import { eq, gte } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import {
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   try {
     const { text } = requestSchema.parse(await request.json());
 
-    if (!process.env.OPENAI_API_KEY) {
+    if (!env.OPENAI_API_KEY) {
       return Response.json(
         {
           error:
@@ -90,8 +90,28 @@ export async function POST(request: Request) {
       .join("\n");
     const today = getTodayKey(env.COMPANY_TIMEZONE);
 
+    const dbEvents = await db
+      .select({
+        id: events.id,
+        title: events.title,
+        eventDate: events.eventDate,
+        venue: events.venue,
+      })
+      .from(events)
+      .where(gte(events.eventDate, today))
+      .limit(50);
+
+    const eventList = dbEvents
+      .map((e) => `${e.id}: ${e.title} (Date: ${e.eventDate}, Venue: ${e.venue || "None"})`)
+      .join("\n");
+
     const systemPrompt = `You convert Nantucket Event Co. WhatsApp schedules into extremely clear staff job cards.
 Today is ${today}. Extract every event mentioned and preserve every operational detail.
+
+EXISTING UPCOMING EVENTS:
+${eventList || "No upcoming events found."}
+
+If the user's message is updating or adding details to an existing event from the list above, return its exact ID in the \`eventId\` field. If they are describing a new event, leave \`eventId\` null.
 
 SCHEDULING RULES:
 - A date-level "Warehouse call" applies to EVERY operational event that follows on that date until another warehouse call or date appears. Put that inherited time in callTime. Owner/Porter visits do not inherit warehouse calls.
@@ -138,8 +158,9 @@ ${vehicleList || "No vehicle records available."}
 INVENTORY:
 ${inventoryList || "No inventory records available."}`;
 
+    const openai = createOpenAI({ apiKey: env.OPENAI_API_KEY });
     const { output } = await generateText({
-      model: openai(process.env.OPENAI_MODEL || "gpt-4o"),
+      model: openai(env.OPENAI_MODEL),
       system: systemPrompt,
       prompt: text,
       output: Output.object({ schema: quickAddOutputSchema }),
@@ -173,32 +194,59 @@ ${inventoryList || "No inventory records available."}`;
     }
 
     const createdIds: string[] = [];
+    const updatedIds: string[] = [];
 
     await db.transaction(async (tx) => {
       for (const event of prepared.events) {
-        const eventId = createId("evt");
+        let currentEventId = event.eventId;
 
-        await tx.insert(events).values({
-          id: eventId,
-          title: event.title,
-          eventDate: event.eventDate,
-          venue: event.venue,
-          address: event.address,
-          clientName: null,
-          status: "CONFIRMED",
-          callTime: event.callTime,
-          departureTime: null,
-          returnTime: null,
-          notes: event.notes,
-          staffBrief: null,
-          createdBy: auth.session.id,
-        });
+        if (currentEventId) {
+          // Update existing event
+          await tx
+            .update(events)
+            .set({
+              title: event.title,
+              eventDate: event.eventDate,
+              venue: event.venue,
+              address: event.address,
+              callTime: event.callTime,
+              notes: event.notes,
+            })
+            .where(eq(events.id, currentEventId));
+
+          // Clear out existing relations to replace them
+          await tx.delete(eventTimeline).where(eq(eventTimeline.eventId, currentEventId));
+          await tx.delete(eventStaff).where(eq(eventStaff.eventId, currentEventId));
+          await tx.delete(eventVehicles).where(eq(eventVehicles.eventId, currentEventId));
+          await tx.delete(eventInventory).where(eq(eventInventory.eventId, currentEventId));
+
+          updatedIds.push(currentEventId);
+        } else {
+          // Create new event
+          currentEventId = createId("evt");
+          await tx.insert(events).values({
+            id: currentEventId,
+            title: event.title,
+            eventDate: event.eventDate,
+            venue: event.venue,
+            address: event.address,
+            clientName: null,
+            status: "CONFIRMED",
+            callTime: event.callTime,
+            departureTime: null,
+            returnTime: null,
+            notes: event.notes,
+            staffBrief: null,
+            createdBy: auth.session.id,
+          });
+          createdIds.push(currentEventId);
+        }
 
         if (event.timeline.length) {
           await tx.insert(eventTimeline).values(
             event.timeline.map((entry, index) => ({
               id: createId("tml"),
-              eventId,
+              eventId: currentEventId as string,
               time: entry.time,
               endTime: entry.endTime,
               label: entry.label,
@@ -208,22 +256,10 @@ ${inventoryList || "No inventory records available."}`;
           );
         }
 
-        if (event.inventory.length) {
-          await tx.insert(eventInventory).values(
-            event.inventory.map((entry) => ({
-              eventId,
-              inventoryItemId: entry.itemId,
-              quantity: entry.quantity,
-              packed: false,
-              notes: null,
-            })),
-          );
-        }
-
         if (event.staffIds.length) {
           await tx.insert(eventStaff).values(
             event.staffIds.map((userId) => ({
-              eventId,
+              eventId: currentEventId as string,
               userId,
               assignment: null,
               callTime: event.callTime,
@@ -235,7 +271,7 @@ ${inventoryList || "No inventory records available."}`;
         if (event.vehicleIds.length) {
           await tx.insert(eventVehicles).values(
             event.vehicleIds.map((vehicleId) => ({
-              eventId,
+              eventId: currentEventId as string,
               vehicleId,
               driverUserId: null,
               destination: event.address ?? event.venue,
@@ -245,14 +281,23 @@ ${inventoryList || "No inventory records available."}`;
           );
         }
 
-        createdIds.push(eventId);
+        if (event.inventory.length) {
+          await tx.insert(eventInventory).values(
+            event.inventory.map((item) => ({
+              eventId: currentEventId as string,
+              inventoryItemId: item.itemId,
+              quantity: item.quantity,
+              packed: false,
+              notes: null,
+            })),
+          );
+        }
       }
     });
 
     return Response.json({
-      success: true,
       createdCount: createdIds.length,
-      createdIds,
+      updatedCount: updatedIds.length,
       warnings: prepared.warnings,
     });
   } catch (error) {

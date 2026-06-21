@@ -53,6 +53,10 @@ export const vehicleSchema = z.object({
   capacity: optionalText,
   plate: optionalText,
   color: optionalText,
+  imageUrl: z
+    .union([z.string().trim().url(), z.literal(""), z.null()])
+    .optional()
+    .transform((value) => value || null),
   notes: optionalText,
   active: z.boolean().default(true),
 });

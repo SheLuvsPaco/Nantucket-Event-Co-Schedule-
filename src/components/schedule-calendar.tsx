@@ -52,13 +52,9 @@ export function ScheduleCalendar({
   return (
     <section className={styles.calendar} aria-label="Event calendar">
       <div className={styles.toolbar}>
-        <button
-          className="button button-secondary"
-          type="button"
-          onClick={() => goToMonth(parse(todayKey.slice(0, 7), "yyyy-MM", new Date()))}
-        >
-          Today
-        </button>
+        <h2 className={styles.monthTitle}>
+          {format(monthDate, "MMMM yyyy")}
+        </h2>
         <div className={styles.controls}>
           <button
             aria-label="Previous month"

@@ -525,3 +525,20 @@
     column-gap: 28px;
   }
 }
+
+/* Focus Mode Additions */
+.eventFocus {
+  box-shadow: 0 0 0 3px var(--navy);
+  transform: translateY(-2px);
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.focusBody {
+  animation: fade-in 0.3s ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
