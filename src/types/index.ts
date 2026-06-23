@@ -16,6 +16,7 @@ export type UserRecord = {
   name: string;
   email: string;
   phone: string | null;
+  avatarUrl: string | null;
   role: Role;
   active: boolean;
 };
@@ -30,6 +31,18 @@ export type VehicleRecord = {
   notes: string | null;
   imageUrl: string | null;
   active: boolean;
+};
+
+export type ManagementInvoiceRecord = {
+  id: string;
+  eventName: string;
+  eventDate: string;
+  eventTime: string | null;
+  imageOriginalName: string;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  creator: Pick<UserRecord, "id" | "name">;
 };
 
 export type TimelineRecord = {

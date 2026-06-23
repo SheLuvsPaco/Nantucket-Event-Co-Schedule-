@@ -66,8 +66,14 @@ All deployment-specific values live in environment variables:
 - `DEMO_MODE`
 - `DATABASE_URL`
 - `DATABASE_AUTH_TOKEN`
+- `BLOB_READ_WRITE_TOKEN`
+- `INVOICE_BLOB_READ_WRITE_TOKEN`
 - `OPENAI_API_KEY`
 - `OPENAI_MODEL`
+- `VAPID_PUBLIC_KEY`
+- `VAPID_PRIVATE_KEY`
+- `VAPID_SUBJECT`
+- `CRON_SECRET`
 - `SEED_*` account values
 
 Generate a production authentication secret with:
@@ -121,10 +127,19 @@ settings. Do not commit a real `.env.production` file. The browser and API
 calls use same-origin relative paths, so the app does not require a hardcoded
 production base URL.
 
-Inventory and vehicle uploads are stored in the project’s public Vercel Blob
-store. The upload route accepts JPG, PNG, WebP, GIF, and AVIF images up to 4 MB,
-uses collision-safe filenames, and removes replaced or abandoned managed
-uploads when they are no longer referenced by the database.
+Inventory, vehicle, and self-service profile-photo uploads are stored in the
+project’s public Vercel Blob store. Upload routes accept JPG, PNG, WebP, GIF,
+and AVIF images up to 4 MB, use collision-safe filenames, and remove replaced
+or abandoned managed uploads when they are no longer referenced by the
+database. Team members manage only their own profile photo and password from
+the account menu.
+
+Management invoice images use a separate private Vercel Blob store because
+they may contain client or financial information. Create a private Blob store,
+connect it to the Vercel project, and expose its token as
+`INVOICE_BLOB_READ_WRITE_TOKEN`. Invoice images are delivered only through an
+authenticated application route. Local development stores temporary invoice
+images under the ignored `.data/invoices` directory.
 
 ## PWA behavior
 
@@ -163,6 +178,29 @@ URL or an HTTPS development tunnel for real-device installation.
 On iPhone/iPad, open the HTTPS site in Safari and use **Share → Add to Home
 Screen**. On Android, use the browser’s **Install app** or **Add to Home
 Screen** action.
+
+### Phone notifications
+
+Each signed-in user can enable notifications for the current phone from the
+account menu. Alerts cover new assignments, event updates, vehicle changes,
+new management invoices for Leads, Lead promotions, and morning warehouse
+reminders. Notification permissions are never requested until the user taps
+the enable button.
+
+Generate one permanent VAPID key pair:
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+Add the generated values to Vercel as `VAPID_PUBLIC_KEY` and
+`VAPID_PRIVATE_KEY`, set `VAPID_SUBJECT` to a `mailto:` operations address,
+and generate `CRON_SECRET` with `openssl rand -hex 32`. Keep the VAPID pair
+unchanged: replacing it requires phones to subscribe again.
+
+The Vercel Cron configuration calls the protected reminder endpoint daily at
+`10:00 UTC`, which is `6:00 AM` in Nantucket during daylight-saving time.
+Expired browser subscriptions are removed automatically.
 
 ## Quality checks
 

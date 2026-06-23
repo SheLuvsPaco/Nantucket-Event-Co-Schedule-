@@ -3,7 +3,7 @@ import "server-only";
 import { del } from "@vercel/blob";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { inventoryItems, vehicles } from "@/db/schema";
+import { inventoryItems, users, vehicles } from "@/db/schema";
 import { isManagedBlobUrl } from "@/lib/image-upload";
 
 export async function deleteManagedImageIfUnreferenced(
@@ -11,7 +11,7 @@ export async function deleteManagedImageIfUnreferenced(
 ) {
   if (!isManagedBlobUrl(imageUrl)) return false;
 
-  const [inventoryReference, vehicleReference] = await Promise.all([
+  const [inventoryReference, vehicleReference, userReference] = await Promise.all([
     db
       .select({ id: inventoryItems.id })
       .from(inventoryItems)
@@ -22,9 +22,20 @@ export async function deleteManagedImageIfUnreferenced(
       .from(vehicles)
       .where(eq(vehicles.imageUrl, imageUrl))
       .limit(1),
+    db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.avatarUrl, imageUrl))
+      .limit(1),
   ]);
 
-  if (inventoryReference.length || vehicleReference.length) return false;
+  if (
+    inventoryReference.length ||
+    vehicleReference.length ||
+    userReference.length
+  ) {
+    return false;
+  }
 
   await del(imageUrl);
   return true;

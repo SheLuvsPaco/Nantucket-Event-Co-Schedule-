@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   Boxes,
   CalendarDays,
-  LogOut,
+  ClipboardList,
   Truck,
   UserRoundCheck,
   UsersRound,
@@ -17,13 +17,13 @@ const allLinks = [
     href: "/app/schedule",
     label: "Schedule",
     icon: CalendarDays,
-    roles: ["ADMIN", "OWNER", "STAFF"] satisfies Role[],
+    roles: ["ADMIN", "OWNER", "LEAD", "STAFF"] satisfies Role[],
   },
   {
     href: "/app/only-me",
     label: "Only Me",
     icon: UserRoundCheck,
-    roles: ["STAFF"] satisfies Role[],
+    roles: ["LEAD", "STAFF"] satisfies Role[],
   },
   {
     href: "/app/inventory",
@@ -41,7 +41,13 @@ const allLinks = [
     href: "/app/team",
     label: "Team",
     icon: UsersRound,
-    roles: ["ADMIN"] satisfies Role[],
+    roles: ["ADMIN", "OWNER"] satisfies Role[],
+  },
+  {
+    href: "/app/management",
+    label: "Management",
+    icon: ClipboardList,
+    roles: ["ADMIN", "OWNER", "LEAD"] satisfies Role[],
   },
 ];
 
@@ -73,30 +79,5 @@ export function AppNav({
         );
       })}
     </nav>
-  );
-}
-
-export function LogoutButton({
-  mobileMenu = false,
-}: {
-  mobileMenu?: boolean;
-}) {
-  const router = useRouter();
-
-  async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
-    router.refresh();
-  }
-
-  return (
-    <button
-      className={mobileMenu ? "mobile-logout-button" : "nav-link logout-button"}
-      onClick={logout}
-      type="button"
-    >
-      <LogOut aria-hidden="true" />
-      <span>Sign out</span>
-    </button>
   );
 }

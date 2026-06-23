@@ -52,6 +52,14 @@ assert(
   serviceWorker.includes('const OFFLINE_URL = "/offline.html"'),
   "The service worker must use the offline fallback.",
 );
+assert(
+  serviceWorker.includes('self.addEventListener("push"'),
+  "The service worker must receive push notifications.",
+);
+assert(
+  serviceWorker.includes('self.addEventListener("notificationclick"'),
+  "The service worker must open the app when a notification is tapped.",
+);
 
 await Promise.all(
   [

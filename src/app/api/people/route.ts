@@ -33,6 +33,7 @@ export async function POST(request: Request) {
         name: input.name,
         email: input.email,
         phone: input.phone,
+        avatarUrl: null,
         role: input.role,
         active: input.active,
         passwordHash: await hash(input.password, 12),
@@ -42,6 +43,7 @@ export async function POST(request: Request) {
         name: users.name,
         email: users.email,
         phone: users.phone,
+        avatarUrl: users.avatarUrl,
         role: users.role,
         active: users.active,
       });

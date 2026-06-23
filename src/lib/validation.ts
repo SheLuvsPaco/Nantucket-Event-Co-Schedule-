@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { eventStatuses, roles } from "@/db/schema";
+import { crewRoles } from "@/lib/roles";
 
 const optionalText = z
   .string()
@@ -68,6 +69,54 @@ export const userSchema = z.object({
   role: z.enum(roles),
   password: z.union([z.string().min(8).max(200), z.literal("")]).optional(),
   active: z.boolean().default(true),
+});
+
+export const crewRoleUpdateSchema = z.object({
+  role: z.enum(crewRoles),
+});
+
+export const managementInvoiceSchema = z.object({
+  eventName: z.string().trim().min(2).max(160),
+  eventDate: z.string().date(),
+  eventTime: optionalTime,
+  notes: optionalText,
+});
+
+export const passwordChangeSchema = z
+  .object({
+    currentPassword: z.string().min(4).max(200),
+    newPassword: z.string().min(8).max(200),
+    confirmPassword: z.string().min(8).max(200),
+  })
+  .superRefine((value, context) => {
+    if (value.newPassword !== value.confirmPassword) {
+      context.addIssue({
+        code: "custom",
+        message: "New passwords do not match.",
+        path: ["confirmPassword"],
+      });
+    }
+    if (value.currentPassword === value.newPassword) {
+      context.addIssue({
+        code: "custom",
+        message: "Choose a new password that is different from the current one.",
+        path: ["newPassword"],
+      });
+    }
+  });
+
+export const pushSubscriptionSchema = z.object({
+  endpoint: z.string().url().max(4096),
+  expirationTime: z.number().int().nonnegative().nullable().optional(),
+  keys: z.object({
+    p256dh: z.string().min(1).max(2048),
+    auth: z.string().min(1).max(2048),
+  }),
+  userAgent: z.string().trim().max(1000).optional().nullable(),
+});
+
+export const pushUnsubscribeSchema = z.object({
+  endpoint: z.string().url().max(4096),
 });
 
 const timelineSchema = z.object({

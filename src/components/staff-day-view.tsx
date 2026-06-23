@@ -21,6 +21,7 @@ import {
 import { isCountFreePackItem } from "@/lib/pack-list";
 import type { ScheduleEvent } from "@/types";
 import { PackItemCheckbox } from "./pack-item-checkbox";
+import { UserAvatar } from "./user-avatar";
 import styles from "./staff-day-view.module.css";
 
 function subscribeToClientState() {
@@ -286,9 +287,11 @@ export function StaffDayView({
                           data-current={assignment.userId === sessionUserId}
                           key={assignment.userId}
                         >
-                          <span className={styles.crewInitial}>
-                            {assignment.user?.name.charAt(0)}
-                          </span>
+                          <UserAvatar
+                            avatarUrl={assignment.user?.avatarUrl}
+                            className={styles.crewAvatar}
+                            name={assignment.user?.name ?? "Crew member"}
+                          />
                           <div>
                             <strong>
                               {assignment.user?.name}

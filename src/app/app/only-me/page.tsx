@@ -30,7 +30,7 @@ export default async function OnlyMePage({
   searchParams: Promise<{ month?: string }>;
 }) {
   const [session, params] = await Promise.all([
-    requireSession(["STAFF"]),
+    requireSession(["LEAD", "STAFF"]),
     searchParams,
   ]);
   const todayKey = getTodayKey(env.COMPANY_TIMEZONE);

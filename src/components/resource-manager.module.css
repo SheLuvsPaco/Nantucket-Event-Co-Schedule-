@@ -261,6 +261,12 @@
   height: 23px;
 }
 
+.listAvatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+}
+
 .listMain {
   min-width: 0;
 }
@@ -295,8 +301,55 @@
   font-weight: 750;
 }
 
+.roleEditor {
+  display: grid;
+  min-width: 126px;
+  gap: 5px;
+}
+
+.roleEditor label {
+  color: var(--ink-faint);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.roleEditor :global(.select) {
+  min-height: 42px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.adminManaged {
+  max-width: 88px;
+  color: var(--ink-faint);
+  font-size: 0.68rem;
+  font-weight: 750;
+  line-height: 1.25;
+  text-align: right;
+}
+
 @media (min-width: 680px) {
   .toolbar {
     grid-template-columns: minmax(220px, 1fr) auto auto;
+  }
+}
+
+@media (max-width: 520px) {
+  .listItem {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .roleEditor,
+  .adminManaged,
+  .listItem > :global(.icon-button) {
+    grid-column: 2;
+    justify-self: stretch;
+  }
+
+  .adminManaged {
+    max-width: none;
+    text-align: left;
   }
 }

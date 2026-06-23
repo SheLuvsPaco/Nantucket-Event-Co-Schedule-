@@ -8,7 +8,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 
-export const roles = ["ADMIN", "OWNER", "STAFF"] as const;
+export const roles = ["ADMIN", "OWNER", "LEAD", "STAFF"] as const;
 export type Role = (typeof roles)[number];
 
 export const eventStatuses = ["DRAFT", "CONFIRMED", "COMPLETED"] as const;
@@ -23,6 +23,9 @@ export const users = sqliteTable(
     passwordHash: text("password_hash").notNull(),
     role: text("role", { enum: roles }).notNull(),
     phone: text("phone"),
+    avatarUrl: text("avatar_url"),
+    avatarStorageKey: text("avatar_storage_key"),
+    avatarContentType: text("avatar_content_type"),
     active: integer("active", { mode: "boolean" }).notNull().default(true),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
@@ -78,6 +81,78 @@ export const vehicles = sqliteTable(
       .$defaultFn(() => new Date()),
   },
   (table) => [index("vehicles_active_idx").on(table.active)],
+);
+
+export const managementInvoices = sqliteTable(
+  "management_invoices",
+  {
+    id: text("id").primaryKey(),
+    eventName: text("event_name").notNull(),
+    eventDate: text("event_date").notNull(),
+    eventTime: text("event_time"),
+    imageStorageKey: text("image_storage_key").notNull(),
+    imageContentType: text("image_content_type").notNull(),
+    imageOriginalName: text("image_original_name").notNull(),
+    notes: text("notes"),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("management_invoices_date_idx").on(table.eventDate),
+    index("management_invoices_created_at_idx").on(table.createdAt),
+  ],
+);
+
+export const pushSubscriptions = sqliteTable(
+  "push_subscriptions",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    expirationTime: integer("expiration_time"),
+    userAgent: text("user_agent"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("push_subscriptions_endpoint_unique").on(table.endpoint),
+    index("push_subscriptions_user_idx").on(table.userId),
+  ],
+);
+
+export const pushNotificationLog = sqliteTable(
+  "push_notification_log",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    entityId: text("entity_id"),
+    dedupeKey: text("dedupe_key").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("push_notification_log_dedupe_unique").on(table.dedupeKey),
+    index("push_notification_log_user_idx").on(table.userId),
+  ],
 );
 
 export const events = sqliteTable(
@@ -192,8 +267,41 @@ export const eventVehicles = sqliteTable(
 
 export const usersRelations = relations(users, ({ many }) => ({
   createdEvents: many(events),
+  createdManagementInvoices: many(managementInvoices),
   eventAssignments: many(eventStaff),
+  pushSubscriptions: many(pushSubscriptions),
+  pushNotificationLog: many(pushNotificationLog),
 }));
+
+export const managementInvoicesRelations = relations(
+  managementInvoices,
+  ({ one }) => ({
+    creator: one(users, {
+      fields: [managementInvoices.createdBy],
+      references: [users.id],
+    }),
+  }),
+);
+
+export const pushSubscriptionsRelations = relations(
+  pushSubscriptions,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [pushSubscriptions.userId],
+      references: [users.id],
+    }),
+  }),
+);
+
+export const pushNotificationLogRelations = relations(
+  pushNotificationLog,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [pushNotificationLog.userId],
+      references: [users.id],
+    }),
+  }),
+);
 
 export const inventoryRelations = relations(inventoryItems, ({ many }) => ({
   eventItems: many(eventInventory),

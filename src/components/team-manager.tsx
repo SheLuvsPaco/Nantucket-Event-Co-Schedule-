@@ -4,7 +4,9 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, Pencil, Plus, Search, UserRound, X } from "lucide-react";
 import type { Role } from "@/db/schema";
+import { isCrewRole, roleLabel, type CrewRole } from "@/lib/roles";
 import type { UserRecord } from "@/types";
+import { UserAvatar } from "./user-avatar";
 import styles from "./resource-manager.module.css";
 
 type TeamDraft = Omit<UserRecord, "id"> & { password: string };
@@ -13,6 +15,7 @@ const emptyPerson: TeamDraft = {
   name: "",
   email: "",
   phone: "",
+  avatarUrl: null,
   role: "STAFF",
   active: true,
   password: "",
@@ -21,17 +24,24 @@ const emptyPerson: TeamDraft = {
 export function TeamManager({
   initialPeople,
   sessionUserId,
+  viewerRole,
 }: {
   initialPeople: UserRecord[];
   sessionUserId: string;
+  viewerRole: Extract<Role, "ADMIN" | "OWNER">;
 }) {
   const router = useRouter();
+  const isAdmin = viewerRole === "ADMIN";
   const [query, setQuery] = useState("");
   const [role, setRole] = useState<"ALL" | Role>("ALL");
   const [editing, setEditing] = useState<UserRecord | null>(null);
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState<TeamDraft>(emptyPerson);
   const [pending, setPending] = useState(false);
+  const [pendingRoleId, setPendingRoleId] = useState<string | null>(null);
+  const [roleOverrides, setRoleOverrides] = useState<
+    Partial<Record<string, CrewRole>>
+  >({});
   const [error, setError] = useState("");
 
   const filtered = useMemo(() => {
@@ -47,6 +57,7 @@ export function TeamManager({
   }, [initialPeople, query, role]);
 
   function startCreate() {
+    if (!isAdmin) return;
     setEditing(null);
     setCreating(true);
     setDraft(emptyPerson);
@@ -54,12 +65,14 @@ export function TeamManager({
   }
 
   function startEdit(person: UserRecord) {
+    if (!isAdmin) return;
     setCreating(false);
     setEditing(person);
     setDraft({
       name: person.name,
       email: person.email,
       phone: person.phone ?? "",
+      avatarUrl: person.avatarUrl,
       role: person.role,
       active: person.active,
       password: "",
@@ -74,6 +87,7 @@ export function TeamManager({
   }
 
   async function save() {
+    if (!isAdmin) return;
     setPending(true);
     setError("");
     try {
@@ -100,6 +114,7 @@ export function TeamManager({
   }
 
   async function deactivate(person: UserRecord) {
+    if (!isAdmin) return;
     if (
       !window.confirm(
         `Deactivate “${person.name}”? They will no longer be able to sign in.`,
@@ -125,7 +140,33 @@ export function TeamManager({
     }
   }
 
-  const editorOpen = creating || editing !== null;
+  async function changeCrewRole(person: UserRecord, nextRole: CrewRole) {
+    const currentRole = roleOverrides[person.id] ?? person.role;
+    if (!isCrewRole(currentRole) || currentRole === nextRole) return;
+
+    setPendingRoleId(person.id);
+    setError("");
+    try {
+      const response = await fetch(`/api/people/${person.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: nextRole }),
+      });
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setError(data.error ?? "The role could not be changed.");
+        return;
+      }
+      setRoleOverrides((current) => ({ ...current, [person.id]: nextRole }));
+      router.refresh();
+    } catch {
+      setError("We could not reach the schedule. Check your connection and try again.");
+    } finally {
+      setPendingRoleId(null);
+    }
+  }
+
+  const editorOpen = isAdmin && (creating || editing !== null);
 
   return (
     <div className={styles.manager}>
@@ -148,11 +189,14 @@ export function TeamManager({
           <option value="ALL">All roles</option>
           <option value="ADMIN">Admins</option>
           <option value="OWNER">Owners</option>
+          <option value="LEAD">Leads</option>
           <option value="STAFF">Staff</option>
         </select>
-        <button className="button button-primary" onClick={startCreate} type="button">
-          <Plus aria-hidden="true" /> Add person
-        </button>
+        {isAdmin ? (
+          <button className="button button-primary" onClick={startCreate} type="button">
+            <Plus aria-hidden="true" /> Add person
+          </button>
+        ) : null}
       </div>
 
       {editorOpen ? (
@@ -200,6 +244,7 @@ export function TeamManager({
                     }
                   >
                     <option value="STAFF">Staff</option>
+                    <option value="LEAD">Lead</option>
                     <option value="OWNER">Owner</option>
                     <option value="ADMIN">Admin</option>
                   </select>
@@ -314,9 +359,11 @@ export function TeamManager({
               data-inactive={!person.active}
               key={person.id}
             >
-              <span className={styles.listIcon}>
-                <UserRound aria-hidden="true" />
-              </span>
+              <UserAvatar
+                avatarUrl={person.avatarUrl}
+                className={styles.listAvatar}
+                name={person.name}
+              />
               <div className={styles.listMain}>
                 <h2>
                   {person.name}
@@ -324,19 +371,40 @@ export function TeamManager({
                 </h2>
                 <p>{person.email}</p>
                 <div className={styles.listMeta}>
-                  <span>{person.role.toLowerCase()}</span>
+                  <span>{roleLabel(roleOverrides[person.id] ?? person.role)}</span>
                   {person.phone ? <span>{person.phone}</span> : null}
                   {!person.active ? <span>Inactive</span> : null}
                 </div>
               </div>
-              <button
-                aria-label={`Edit ${person.name}`}
-                className="icon-button"
-                onClick={() => startEdit(person)}
-                type="button"
-              >
-                <Pencil aria-hidden="true" />
-              </button>
+              {isAdmin ? (
+                <button
+                  aria-label={`Edit ${person.name}`}
+                  className="icon-button"
+                  onClick={() => startEdit(person)}
+                  type="button"
+                >
+                  <Pencil aria-hidden="true" />
+                </button>
+              ) : isCrewRole(person.role) ? (
+                <div className={styles.roleEditor}>
+                  <label htmlFor={`role-${person.id}`}>Crew role</label>
+                  <select
+                    aria-label={`Change ${person.name}'s role`}
+                    className="select"
+                    disabled={pendingRoleId === person.id}
+                    id={`role-${person.id}`}
+                    onChange={(event) =>
+                      changeCrewRole(person, event.target.value as CrewRole)
+                    }
+                    value={roleOverrides[person.id] ?? person.role}
+                  >
+                    <option value="STAFF">Staff</option>
+                    <option value="LEAD">Lead</option>
+                  </select>
+                </div>
+              ) : (
+                <span className={styles.adminManaged}>Admin managed</span>
+              )}
             </article>
           ))}
         </div>
@@ -345,7 +413,11 @@ export function TeamManager({
           <div>
             <UserRound aria-hidden="true" />
             <h2>No team members match</h2>
-            <p className="muted">Clear the search or add a person.</p>
+            <p className="muted">
+              {isAdmin
+                ? "Clear the search or add a person."
+                : "Clear the search or choose another role."}
+            </p>
           </div>
         </div>
       )}

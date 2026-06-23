@@ -4,12 +4,14 @@ import {
   eventStaff,
   events,
   inventoryItems,
+  managementInvoices,
   users,
   vehicles,
 } from "@/db/schema";
 import type {
   CalendarEvent,
   InventoryRecord,
+  ManagementInvoiceRecord,
   ScheduleEvent,
   UserRecord,
   VehicleRecord,
@@ -39,6 +41,7 @@ export async function getPeople(includeInactive = false): Promise<UserRecord[]> 
       name: users.name,
       email: users.email,
       phone: users.phone,
+      avatarUrl: users.avatarUrl,
       role: users.role,
       active: users.active,
     })
@@ -63,6 +66,90 @@ export async function getVehicles(includeInactive = false): Promise<VehicleRecor
     .from(vehicles)
     .where(includeInactive ? undefined : eq(vehicles.active, true))
     .orderBy(asc(vehicles.name));
+}
+
+function mapManagementInvoice(
+  invoice: typeof managementInvoices.$inferSelect & {
+    creator: typeof users.$inferSelect;
+  },
+): ManagementInvoiceRecord {
+  return {
+    id: invoice.id,
+    eventName: invoice.eventName,
+    eventDate: invoice.eventDate,
+    eventTime: invoice.eventTime,
+    imageOriginalName: invoice.imageOriginalName,
+    notes: invoice.notes,
+    createdAt: invoice.createdAt.toISOString(),
+    updatedAt: invoice.updatedAt.toISOString(),
+    creator: {
+      id: invoice.creator.id,
+      name: invoice.creator.name,
+    },
+  };
+}
+
+export async function getManagementInvoices(
+  limit = 250,
+): Promise<ManagementInvoiceRecord[]> {
+  const rows = await db.query.managementInvoices.findMany({
+    orderBy: (invoice, { desc }) => [
+      desc(invoice.eventDate),
+      desc(invoice.eventTime),
+      desc(invoice.createdAt),
+    ],
+    limit,
+    with: { creator: true },
+  });
+
+  return rows.map(mapManagementInvoice);
+}
+
+export async function getManagementInvoicesForDate(
+  date: string,
+): Promise<ManagementInvoiceRecord[]> {
+  const rows = await db.query.managementInvoices.findMany({
+    where: eq(managementInvoices.eventDate, date),
+    orderBy: (invoice, { asc: orderAsc }) => [
+      orderAsc(invoice.eventTime),
+      orderAsc(invoice.eventName),
+    ],
+    with: { creator: true },
+  });
+
+  return rows.map(mapManagementInvoice);
+}
+
+export async function getManagementInvoiceCalendar(
+  startDate: string,
+  endDate: string,
+): Promise<CalendarEvent[]> {
+  const rows = await db
+    .select({
+      id: managementInvoices.id,
+      title: managementInvoices.eventName,
+      eventDate: managementInvoices.eventDate,
+      callTime: managementInvoices.eventTime,
+    })
+    .from(managementInvoices)
+    .where(
+      and(
+        gte(managementInvoices.eventDate, startDate),
+        lte(managementInvoices.eventDate, endDate),
+      ),
+    )
+    .orderBy(
+      asc(managementInvoices.eventDate),
+      asc(managementInvoices.eventTime),
+      asc(managementInvoices.eventName),
+    );
+
+  return rows.map((invoice) => ({
+    ...invoice,
+    venue: null,
+    status: "CONFIRMED",
+    staffCount: 0,
+  }));
 }
 
 export async function getCalendarEvents(
@@ -141,6 +228,7 @@ export async function getEventById(id: string): Promise<ScheduleEvent | null> {
           name: event.packer.name,
           email: event.packer.email,
           phone: event.packer.phone,
+          avatarUrl: event.packer.avatarUrl,
           role: event.packer.role,
           active: event.packer.active,
         }
@@ -179,6 +267,7 @@ export async function getEventById(id: string): Promise<ScheduleEvent | null> {
         name: entry.user.name,
         email: entry.user.email,
         phone: entry.user.phone,
+        avatarUrl: entry.user.avatarUrl,
         role: entry.user.role,
         active: entry.user.active,
       },
@@ -206,6 +295,7 @@ export async function getEventById(id: string): Promise<ScheduleEvent | null> {
             name: entry.driver.name,
             email: entry.driver.email,
             phone: entry.driver.phone,
+            avatarUrl: entry.driver.avatarUrl,
             role: entry.driver.role,
             active: entry.driver.active,
           }
@@ -267,6 +357,7 @@ export async function getEventsForDate(
           name: event.packer.name,
           email: event.packer.email,
           phone: event.packer.phone,
+          avatarUrl: event.packer.avatarUrl,
           role: event.packer.role,
           active: event.packer.active,
         }
@@ -305,6 +396,7 @@ export async function getEventsForDate(
         name: entry.user.name,
         email: entry.user.email,
         phone: entry.user.phone,
+        avatarUrl: entry.user.avatarUrl,
         role: entry.user.role,
         active: entry.user.active,
       },
@@ -332,6 +424,7 @@ export async function getEventsForDate(
             name: entry.driver.name,
             email: entry.driver.email,
             phone: entry.driver.phone,
+            avatarUrl: entry.driver.avatarUrl,
             role: entry.driver.role,
             active: entry.driver.active,
           }

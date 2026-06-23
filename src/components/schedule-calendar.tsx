@@ -24,11 +24,13 @@ const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export function ScheduleCalendar({
   basePath = "/app/schedule",
   events,
+  itemNoun = "events",
   monthKey,
   todayKey,
 }: {
   basePath?: string;
   events: CalendarEvent[];
+  itemNoun?: string;
   monthKey: string;
   todayKey: string;
 }) {
@@ -50,7 +52,7 @@ export function ScheduleCalendar({
   }
 
   return (
-    <section className={styles.calendar} aria-label="Event calendar">
+    <section className={styles.calendar} aria-label={`${itemNoun} calendar`}>
       <div className={styles.toolbar}>
         <h2 className={styles.monthTitle}>
           {format(monthDate, "MMMM yyyy")}
@@ -90,7 +92,7 @@ export function ScheduleCalendar({
 
           return (
             <Link
-              aria-label={`${format(day, "EEEE, MMMM d")}, ${dayEvents.length} events`}
+              aria-label={`${format(day, "EEEE, MMMM d")}, ${dayEvents.length} ${itemNoun}`}
               className={styles.day}
               data-outside={outside}
               data-today={isToday}

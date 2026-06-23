@@ -1,4 +1,5 @@
 import { and, asc, gte, lte } from "drizzle-orm";
+import { after } from "next/server";
 import { db } from "@/db";
 import {
   eventInventory,
@@ -11,6 +12,8 @@ import { requireApiSession } from "@/lib/auth";
 import { getEventsForDate } from "@/lib/data";
 import { apiError } from "@/lib/http";
 import { createId } from "@/lib/ids";
+import { eventAssignmentNotification } from "@/lib/notification-content";
+import { sendPushToUsers } from "@/lib/push-notifications";
 import { eventSchema } from "@/lib/validation";
 
 export async function GET(request: Request) {
@@ -95,6 +98,20 @@ export async function POST(request: Request) {
     const event = dayEvents.find(
       (candidate) => candidate.id === eventId,
     );
+    const assignedUserIds = input.staff.map((entry) => entry.userId);
+    if (assignedUserIds.length) {
+      after(async () => {
+        await sendPushToUsers(
+          assignedUserIds,
+          eventAssignmentNotification({
+            eventId,
+            title: input.title,
+            eventDate: input.eventDate,
+            callTime: input.callTime,
+          }),
+        );
+      });
+    }
     return Response.json(event, { status: 201 });
   } catch (error) {
     return apiError(error);

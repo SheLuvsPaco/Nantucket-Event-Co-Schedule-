@@ -448,15 +448,9 @@
   background: var(--orange-soft);
 }
 
-.crewInitial {
-  display: grid;
+.crewAvatar {
   width: 46px;
   height: 46px;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--paper-deep);
-  color: var(--navy);
-  font-weight: 850;
 }
 
 .crew strong,

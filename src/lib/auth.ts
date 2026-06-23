@@ -5,11 +5,13 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { type Role, users } from "@/db/schema";
 import { env } from "@/lib/env";
+import { isRole } from "@/lib/roles";
 
 export type SessionUser = {
   id: string;
   name: string;
   email: string;
+  avatarUrl: string | null;
   role: Role;
 };
 
@@ -57,7 +59,7 @@ export async function getSession(): Promise<SessionUser | null> {
       !payload.sub ||
       typeof payload.name !== "string" ||
       typeof payload.email !== "string" ||
-      !["ADMIN", "OWNER", "STAFF"].includes(String(payload.role))
+      !isRole(payload.role)
     ) {
       return null;
     }
@@ -67,6 +69,7 @@ export async function getSession(): Promise<SessionUser | null> {
         id: users.id,
         name: users.name,
         email: users.email,
+        avatarUrl: users.avatarUrl,
         role: users.role,
       })
       .from(users)

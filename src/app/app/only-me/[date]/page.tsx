@@ -16,7 +16,7 @@ export default async function OnlyMeDayPage({
 }) {
   const [{ date }, session] = await Promise.all([
     params,
-    requireSession(["STAFF"]),
+    requireSession(["LEAD", "STAFF"]),
   ]);
   if (!isDateKey(date)) notFound();
 

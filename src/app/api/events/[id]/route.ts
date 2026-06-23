@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import { after } from "next/server";
 import { db } from "@/db";
 import {
   eventInventory,
@@ -8,12 +9,28 @@ import {
   events,
 } from "@/db/schema";
 import { requireApiSession } from "@/lib/auth";
+import { getTodayKey } from "@/lib/date";
 import { getEventsForDate } from "@/lib/data";
+import { env } from "@/lib/env";
 import { apiError } from "@/lib/http";
 import { createId } from "@/lib/ids";
+import {
+  eventAssignmentNotification,
+  eventUpdatedNotification,
+  vehicleAssignmentNotification,
+} from "@/lib/notification-content";
+import { sendPushToUsers } from "@/lib/push-notifications";
 import { eventSchema } from "@/lib/validation";
 
 type Context = { params: Promise<{ id: string }> };
+
+function sortedJson<T>(values: T[]) {
+  return JSON.stringify(
+    [...values].sort((left, right) =>
+      JSON.stringify(left).localeCompare(JSON.stringify(right)),
+    ),
+  );
+}
 
 export async function PATCH(request: Request, context: Context) {
   const auth = await requireApiSession(["ADMIN", "OWNER"]);
@@ -22,6 +39,110 @@ export async function PATCH(request: Request, context: Context) {
   try {
     const { id } = await context.params;
     const input = eventSchema.parse(await request.json());
+    const previous = await db.query.events.findFirst({
+      where: eq(events.id, id),
+      with: {
+        timeline: true,
+        inventory: true,
+        staff: true,
+        vehicles: true,
+      },
+    });
+
+    if (!previous) {
+      return Response.json({ error: "Event not found." }, { status: 404 });
+    }
+
+    const previousStaffIds = previous.staff.map((entry) => entry.userId);
+    const currentStaffIds = input.staff.map((entry) => entry.userId);
+    const previousStaffSet = new Set(previousStaffIds);
+    const newlyAssignedUserIds = currentStaffIds.filter(
+      (userId) => !previousStaffSet.has(userId),
+    );
+    const retainedUserIds = currentStaffIds.filter((userId) =>
+      previousStaffSet.has(userId),
+    );
+
+    const previousVehicleSignature = sortedJson(
+      previous.vehicles.map((entry) => ({
+        vehicleId: entry.vehicleId,
+        driverUserId: entry.driverUserId,
+        destination: entry.destination,
+        departureTime: entry.departureTime,
+        notes: entry.notes,
+      })),
+    );
+    const currentVehicleSignature = sortedJson(input.vehicles);
+    const vehiclesChanged =
+      previousVehicleSignature !== currentVehicleSignature;
+
+    const previousEventSignature = JSON.stringify({
+      title: previous.title,
+      eventDate: previous.eventDate,
+      venue: previous.venue,
+      address: previous.address,
+      clientName: previous.clientName,
+      status: previous.status,
+      callTime: previous.callTime,
+      departureTime: previous.departureTime,
+      returnTime: previous.returnTime,
+      notes: previous.notes,
+      staffBrief: previous.staffBrief,
+      packerUserId: previous.packerUserId,
+      timeline: sortedJson(
+        previous.timeline.map((entry) => ({
+          time: entry.time,
+          endTime: entry.endTime,
+          label: entry.label,
+          details: entry.details,
+          sortOrder: entry.sortOrder,
+        })),
+      ),
+      inventory: sortedJson(
+        previous.inventory.map((entry) => ({
+          inventoryItemId: entry.inventoryItemId,
+          quantity: entry.quantity,
+          packed: entry.packed,
+          notes: entry.notes,
+        })),
+      ),
+      staff: sortedJson(
+        previous.staff.map((entry) => ({
+          userId: entry.userId,
+          assignment: entry.assignment,
+          callTime: entry.callTime,
+          notes: entry.notes,
+        })),
+      ),
+      vehicles: previousVehicleSignature,
+    });
+    const currentEventSignature = JSON.stringify({
+      title: input.title,
+      eventDate: input.eventDate,
+      venue: input.venue,
+      address: input.address,
+      clientName: input.clientName,
+      status: input.status,
+      callTime: input.callTime,
+      departureTime: input.departureTime,
+      returnTime: input.returnTime,
+      notes: input.notes,
+      staffBrief: input.staffBrief,
+      packerUserId: input.packerUserId,
+      timeline: sortedJson(
+        input.timeline.map((entry, index) => ({
+          time: entry.time,
+          endTime: entry.endTime,
+          label: entry.label,
+          details: entry.details,
+          sortOrder: index,
+        })),
+      ),
+      inventory: sortedJson(input.inventory),
+      staff: sortedJson(input.staff),
+      vehicles: currentVehicleSignature,
+    });
+    const eventChanged = previousEventSignature !== currentEventSignature;
 
     await db.transaction(async (tx) => {
       const [updated] = await tx
@@ -84,6 +205,52 @@ export async function PATCH(request: Request, context: Context) {
     const event = (await getEventsForDate(input.eventDate)).find(
       (candidate) => candidate.id === id,
     );
+
+    if (newlyAssignedUserIds.length || (eventChanged && retainedUserIds.length)) {
+      after(async () => {
+        const deliveries: Promise<unknown>[] = [];
+        if (newlyAssignedUserIds.length) {
+          deliveries.push(
+            sendPushToUsers(
+              newlyAssignedUserIds,
+              eventAssignmentNotification({
+                eventId: id,
+                title: input.title,
+                eventDate: input.eventDate,
+                callTime: input.callTime,
+              }),
+            ),
+          );
+        }
+        if (eventChanged && retainedUserIds.length) {
+          deliveries.push(
+            sendPushToUsers(
+              retainedUserIds,
+              eventUpdatedNotification({
+                eventId: id,
+                title: input.title,
+                eventDate: input.eventDate,
+                isToday:
+                  input.eventDate === getTodayKey(env.COMPANY_TIMEZONE),
+              }),
+            ),
+          );
+        }
+        if (vehiclesChanged && currentStaffIds.length) {
+          deliveries.push(
+            sendPushToUsers(
+              currentStaffIds,
+              vehicleAssignmentNotification({
+                eventId: id,
+                title: input.title,
+                eventDate: input.eventDate,
+              }),
+            ),
+          );
+        }
+        await Promise.all(deliveries);
+      });
+    }
     return Response.json(event);
   } catch (error) {
     return apiError(error);

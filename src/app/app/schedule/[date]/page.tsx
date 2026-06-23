@@ -12,6 +12,7 @@ import {
   getPeople,
   getVehicles,
 } from "@/lib/data";
+import { isCrewRole } from "@/lib/roles";
 
 export const metadata: Metadata = {
   title: "Daily schedule",
@@ -34,7 +35,7 @@ export default async function DailySchedulePage({
   const dayEvents = await getEventsForDate(date);
   const backHref = `/app/schedule?month=${monthKeyFromDate(date)}`;
 
-  if (session.role === "STAFF") {
+  if (isCrewRole(session.role)) {
     return (
       <StaffDayView
         backHref={backHref}

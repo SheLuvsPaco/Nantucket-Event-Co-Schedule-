@@ -39,6 +39,8 @@ yarn-error.log*
 .env*
 !.env.example
 !.env.production.example
+productionready.env
+/.data/
 
 # generated PWA service worker
 /public/sw.js

@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { eventSchema, inventorySchema, loginSchema } from "@/lib/validation";
+import {
+  crewRoleUpdateSchema,
+  eventSchema,
+  inventorySchema,
+  loginSchema,
+  managementInvoiceSchema,
+  passwordChangeSchema,
+  userSchema,
+} from "@/lib/validation";
 
 describe("validation schemas", () => {
   it("normalizes login names", () => {
@@ -18,6 +26,62 @@ describe("validation schemas", () => {
       active: true,
     });
     expect(result.success).toBe(false);
+  });
+
+  it("accepts Lead as an account role", () => {
+    const result = userSchema.parse({
+      name: "Crew Lead",
+      email: "lead@example.com",
+      phone: "",
+      role: "LEAD",
+      password: "Temporary123!",
+      active: true,
+    });
+
+    expect(result.role).toBe("LEAD");
+  });
+
+  it("limits owner role changes to Staff and Lead", () => {
+    expect(crewRoleUpdateSchema.parse({ role: "LEAD" }).role).toBe("LEAD");
+    expect(crewRoleUpdateSchema.parse({ role: "STAFF" }).role).toBe("STAFF");
+    expect(crewRoleUpdateSchema.safeParse({ role: "OWNER" }).success).toBe(false);
+    expect(crewRoleUpdateSchema.safeParse({ role: "ADMIN" }).success).toBe(false);
+  });
+
+  it("accepts a management invoice with an optional time and notes", () => {
+    const result = managementInvoiceSchema.parse({
+      eventName: "Harbor wedding",
+      eventDate: "2026-07-18",
+      eventTime: "14:30",
+      notes: "Review rentals before the warehouse call.",
+    });
+
+    expect(result.eventName).toBe("Harbor wedding");
+    expect(result.eventTime).toBe("14:30");
+  });
+
+  it("requires matching, changed passwords for self-service updates", () => {
+    expect(
+      passwordChangeSchema.safeParse({
+        currentPassword: "Current123!",
+        newPassword: "Different123!",
+        confirmPassword: "Different123!",
+      }).success,
+    ).toBe(true);
+    expect(
+      passwordChangeSchema.safeParse({
+        currentPassword: "Current123!",
+        newPassword: "Different123!",
+        confirmPassword: "Mismatch123!",
+      }).success,
+    ).toBe(false);
+    expect(
+      passwordChangeSchema.safeParse({
+        currentPassword: "SamePassword123!",
+        newPassword: "SamePassword123!",
+        confirmPassword: "SamePassword123!",
+      }).success,
+    ).toBe(false);
   });
 
   it("accepts a complete structured event plan", () => {

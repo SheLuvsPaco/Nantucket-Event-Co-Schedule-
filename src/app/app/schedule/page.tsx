@@ -14,6 +14,7 @@ import { requireSession } from "@/lib/auth";
 import { formatDateKey, getTodayKey } from "@/lib/date";
 import { getCalendarEvents } from "@/lib/data";
 import { env } from "@/lib/env";
+import { isCrewRole } from "@/lib/roles";
 
 export const metadata: Metadata = {
   title: "Schedule",
@@ -43,6 +44,7 @@ export default async function SchedulePage({
     formatDateKey(rangeStart),
     formatDateKey(rangeEnd),
   );
+  const crewView = isCrewRole(session.role);
 
   return (
     <div className="page-shell">
@@ -50,14 +52,14 @@ export default async function SchedulePage({
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
           <div>
             <p className="eyebrow">
-              {session.role === "STAFF" ? "Crew schedule" : "Season operations"}
+              {crewView ? "Crew schedule" : "Season operations"}
             </p>
             <h1>{format(monthDate, "MMMM yyyy")}</h1>
           </div>
-          {session.role !== "STAFF" && <QuickAddTrigger />}
+          {!crewView ? <QuickAddTrigger /> : null}
         </div>
         <p className="schedule-intro">
-          {session.role === "STAFF"
+          {crewView
             ? "Tap a date. Read the plan. Show up ready."
             : "Every event, crew call, truck, and pack list in one place."}
         </p>

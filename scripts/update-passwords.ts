@@ -1,6 +1,7 @@
 import { loadEnvConfig } from "@next/env";
 import { hash } from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
+import { crewRoles } from "../src/lib/roles";
 
 loadEnvConfig(process.cwd());
 
@@ -25,7 +26,10 @@ async function main() {
     .where(eq(users.role, "OWNER"));
 
   console.log("Fetching staff...");
-  const staffList = await db.select().from(users).where(eq(users.role, "STAFF"));
+  const staffList = await db
+    .select()
+    .from(users)
+    .where(inArray(users.role, crewRoles));
 
   console.log(`Updating ${staffList.length} staff users...`);
   for (const staff of staffList) {

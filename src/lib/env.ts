@@ -17,8 +17,13 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   DATABASE_AUTH_TOKEN: optionalEnvironmentValue,
   BLOB_READ_WRITE_TOKEN: optionalEnvironmentValue,
+  INVOICE_BLOB_READ_WRITE_TOKEN: optionalEnvironmentValue,
   OPENAI_API_KEY: optionalEnvironmentValue,
   OPENAI_MODEL: z.string().trim().min(1).default("gpt-4o"),
+  VAPID_PUBLIC_KEY: optionalEnvironmentValue,
+  VAPID_PRIVATE_KEY: optionalEnvironmentValue,
+  VAPID_SUBJECT: optionalEnvironmentValue,
+  CRON_SECRET: optionalEnvironmentValue,
 });
 
 export const env = envSchema.parse({
@@ -33,6 +38,12 @@ export const env = envSchema.parse({
   DATABASE_AUTH_TOKEN:
     process.env.DATABASE_AUTH_TOKEN ?? process.env.TURSO_AUTH_TOKEN,
   BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN,
+  INVOICE_BLOB_READ_WRITE_TOKEN:
+    process.env.INVOICE_BLOB_READ_WRITE_TOKEN,
   OPENAI_API_KEY: process.env.OPENAI_API_KEY,
   OPENAI_MODEL: process.env.OPENAI_MODEL,
+  VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY,
+  VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
+  VAPID_SUBJECT: process.env.VAPID_SUBJECT,
+  CRON_SECRET: process.env.CRON_SECRET,
 });
