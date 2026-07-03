@@ -2,9 +2,14 @@
 
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
+import type { Business } from "@/lib/businesses";
 import { QuickAddModal } from "./quick-add-modal";
 
-export function QuickAddTrigger() {
+export function QuickAddTrigger({
+  defaultBusiness,
+}: {
+  defaultBusiness?: Business;
+}) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -18,7 +23,12 @@ export function QuickAddTrigger() {
         Quick Add
       </button>
 
-      {isOpen && <QuickAddModal onClose={() => setIsOpen(false)} />}
+      {isOpen && (
+        <QuickAddModal
+          defaultBusiness={defaultBusiness}
+          onClose={() => setIsOpen(false)}
+        />
+      )}
     </>
   );
 }

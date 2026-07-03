@@ -31,6 +31,12 @@ import type {
   UserRecord,
   VehicleRecord,
 } from "@/types";
+import {
+  businesses,
+  businessLabels,
+  defaultBusiness,
+  type Business,
+} from "@/lib/businesses";
 import { isCountFreePackItem } from "@/lib/pack-list";
 import styles from "./event-workspace.module.css";
 
@@ -39,6 +45,7 @@ type EventDraft = {
   title: string;
   eventDate: string;
   address: string;
+  business: Business;
   status: "DRAFT" | "CONFIRMED" | "COMPLETED";
   callTime: string;
   departureTime: string;
@@ -75,11 +82,12 @@ type EventDraft = {
   }>;
 };
 
-function blankEvent(date: string): EventDraft {
+function blankEvent(date: string, business: Business = defaultBusiness): EventDraft {
   return {
     title: "",
     eventDate: date,
     address: "",
+    business,
     status: "DRAFT",
     callTime: "",
     departureTime: "",
@@ -100,6 +108,7 @@ function toDraft(event: ScheduleEvent): EventDraft {
     title: event.title,
     eventDate: event.eventDate,
     address: event.address ?? "",
+    business: event.business,
     status: event.status,
     callTime: event.callTime ?? "",
     departureTime: event.departureTime ?? "",
@@ -481,14 +490,18 @@ function InventoryCombobox({
 
 export function EventWorkspace({
   date,
+  defaultBusiness: initialBusiness = defaultBusiness,
   events,
+  filterQuery = "",
   inventory,
   people,
   selectedId,
   vehicles,
 }: {
   date: string;
+  defaultBusiness?: Business;
   events: ScheduleEvent[];
+  filterQuery?: string;
   inventory: InventoryRecord[];
   people: UserRecord[];
   selectedId: string | null;
@@ -503,18 +516,24 @@ export function EventWorkspace({
           <Link
             className={styles.tab}
             data-active={event.id === selectedId}
-            href={`/app/schedule/${date}?event=${event.id}`}
+            href={`/app/schedule/${date}?event=${event.id}${
+              filterQuery ? `&${filterQuery.slice(1)}` : ""
+            }`}
             key={event.id}
           >
             <span>Job {index + 1}</span>
             <strong>{event.title}</strong>
-            <small>{event.callTime || "Time TBD"}</small>
+            <small>
+              {event.callTime || "Time TBD"} · {businessLabels[event.business]}
+            </small>
           </Link>
         ))}
         <Link
           className={`${styles.tab} ${styles.newTab}`}
           data-active={selectedId === null}
-          href={`/app/schedule/${date}?create=1`}
+          href={`/app/schedule/${date}?create=1${
+            filterQuery ? `&${filterQuery.slice(1)}` : ""
+          }`}
         >
           <Plus aria-hidden="true" />
           <strong>New event</strong>
@@ -524,7 +543,9 @@ export function EventWorkspace({
 
       <EventForm
         date={date}
+        defaultBusiness={initialBusiness}
         event={selected}
+        filterQuery={filterQuery}
         inventory={inventory}
         key={selected?.id ?? `new-${date}`}
         people={people}
@@ -536,24 +557,64 @@ export function EventWorkspace({
 
 function EventForm({
   date,
+  defaultBusiness: initialBusiness,
   event,
+  filterQuery,
   inventory,
   people,
   vehicles,
 }: {
   date: string;
+  defaultBusiness: Business;
   event: ScheduleEvent | null;
+  filterQuery: string;
   inventory: InventoryRecord[];
   people: UserRecord[];
   vehicles: VehicleRecord[];
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState<EventDraft>(() =>
-    event ? toDraft(event) : blankEvent(date),
+    event ? toDraft(event) : blankEvent(date, initialBusiness),
   );
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const selectedInventoryIds = useMemo(
+    () => new Set(draft.inventory.map((item) => item.inventoryItemId)),
+    [draft.inventory],
+  );
+  const selectedStaffIds = useMemo(
+    () => new Set(draft.staff.map((item) => item.userId)),
+    [draft.staff],
+  );
+  const selectedVehicleIds = useMemo(
+    () => new Set(draft.vehicles.map((item) => item.vehicleId)),
+    [draft.vehicles],
+  );
+  const branchInventory = useMemo(
+    () =>
+      inventory.filter(
+        (item) =>
+          item.business === draft.business || selectedInventoryIds.has(item.id),
+      ),
+    [draft.business, inventory, selectedInventoryIds],
+  );
+  const branchPeople = useMemo(
+    () =>
+      people.filter(
+        (person) =>
+          person.business === draft.business || selectedStaffIds.has(person.id),
+      ),
+    [draft.business, people, selectedStaffIds],
+  );
+  const branchVehicles = useMemo(
+    () =>
+      vehicles.filter(
+        (vehicle) =>
+          vehicle.business === draft.business || selectedVehicleIds.has(vehicle.id),
+      ),
+    [draft.business, selectedVehicleIds, vehicles],
+  );
 
   function update<K extends keyof EventDraft>(key: K, value: EventDraft[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -584,7 +645,11 @@ function EventForm({
       }
       setDraft(toDraft(data));
       setSaved(true);
-      router.push(`/app/schedule/${data.eventDate}?event=${data.id}`);
+      router.push(
+        `/app/schedule/${data.eventDate}?event=${data.id}${
+          filterQuery ? `&${filterQuery.slice(1)}` : ""
+        }`,
+      );
       router.refresh();
     } catch {
       setError("We could not reach the schedule. Check your connection and save again.");
@@ -611,7 +676,7 @@ function EventForm({
         setError(data.error ?? "The event could not be deleted.");
         return;
       }
-      router.push(`/app/schedule/${date}`);
+      router.push(`/app/schedule/${date}${filterQuery}`);
       router.refresh();
     } catch {
       setError("We could not reach the schedule. Try deleting the event again.");
@@ -635,7 +700,9 @@ function EventForm({
 
   function addInventory() {
     const selected = new Set(draft.inventory.map((item) => item.inventoryItemId));
-    const available = inventory.find((item) => item.active && !selected.has(item.id));
+    const available = branchInventory.find(
+      (item) => item.active && item.business === draft.business && !selected.has(item.id),
+    );
     if (!available) return;
     update("inventory", [
       ...draft.inventory,
@@ -645,7 +712,10 @@ function EventForm({
 
   function addStaff() {
     const selected = new Set(draft.staff.map((item) => item.userId));
-    const available = people.find((person) => person.active && !selected.has(person.id));
+    const available = branchPeople.find(
+      (person) =>
+        person.active && person.business === draft.business && !selected.has(person.id),
+    );
     if (!available) return;
     update("staff", [
       ...draft.staff,
@@ -660,8 +730,9 @@ function EventForm({
 
   function addVehicle() {
     const selected = new Set(draft.vehicles.map((item) => item.vehicleId));
-    const available = vehicles.find(
-      (vehicle) => vehicle.active && !selected.has(vehicle.id),
+    const available = branchVehicles.find(
+      (vehicle) =>
+        vehicle.active && vehicle.business === draft.business && !selected.has(vehicle.id),
     );
     if (!available) return;
     update("vehicles", [
@@ -721,7 +792,24 @@ function EventForm({
                 placeholder="Wedding install, rehearsal dinner…"
               />
             </div>
-            <div className="form-grid form-grid-2">
+            <div className="form-grid form-grid-3">
+              <div className="field">
+                <label htmlFor="event-business">Business</label>
+                <select
+                  className="select"
+                  id="event-business"
+                  value={draft.business}
+                  onChange={(event) =>
+                    update("business", event.target.value as Business)
+                  }
+                >
+                  {businesses.map((business) => (
+                    <option key={business} value={business}>
+                      {businessLabels[business]}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="field">
                 <label htmlFor="event-date">Date</label>
                 <input
@@ -910,7 +998,7 @@ function EventForm({
                 onChange={(event) => update("packerUserId", event.target.value)}
               >
                 <option value="">No specific packer assigned</option>
-                {people
+                {branchPeople
                   .filter(
                     (person) =>
                       person.active || person.id === draft.packerUserId,
@@ -950,7 +1038,7 @@ function EventForm({
                       <label htmlFor={`inventory-item-${index}`}>Inventory item</label>
                       <InventoryCombobox
                         id={`inventory-item-${index}`}
-                        inventory={inventory}
+                        inventory={branchInventory}
                         value={entry.inventoryItemId}
                         selectedElsewhere={
                           new Set(
@@ -965,7 +1053,8 @@ function EventForm({
                             ...entry,
                             inventoryItemId: value,
                             quantity: isCountFreePackItem(
-                              inventory.find((item) => item.id === value)?.name,
+                              branchInventory.find((item) => item.id === value)
+                                ?.name,
                             )
                               ? 1
                               : entry.quantity,
@@ -1069,7 +1158,7 @@ function EventForm({
                           update("staff", next);
                         }}
                       >
-                        {people
+                        {branchPeople
                           .filter(
                             (person) =>
                               person.id === entry.userId ||
@@ -1180,7 +1269,7 @@ function EventForm({
                           update("vehicles", next);
                         }}
                       >
-                        {vehicles
+                        {branchVehicles
                           .filter(
                             (vehicle) =>
                               vehicle.id === entry.vehicleId ||
@@ -1212,8 +1301,11 @@ function EventForm({
                         }}
                       >
                         <option value="">Not assigned</option>
-                        {people
-                          .filter((person) => person.active || person.id === entry.driverUserId)
+                        {branchPeople
+                          .filter(
+                            (person) =>
+                              person.active || person.id === entry.driverUserId,
+                          )
                           .map((person) => (
                             <option key={person.id} value={person.id}>
                               {person.name}

@@ -10,6 +10,7 @@ export async function GET() {
       name: auth.session.name,
       avatarUrl: auth.session.avatarUrl,
       role: auth.session.role,
+      business: auth.session.business,
     },
   });
 }

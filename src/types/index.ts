@@ -1,4 +1,5 @@
 import type { EventStatus, Role } from "@/db/schema";
+import type { Business } from "@/lib/businesses";
 
 export type InventoryRecord = {
   id: string;
@@ -8,6 +9,7 @@ export type InventoryRecord = {
   size: string | null;
   imageUrl: string | null;
   notes: string | null;
+  business: Business;
   active: boolean;
 };
 
@@ -18,6 +20,7 @@ export type UserRecord = {
   phone: string | null;
   avatarUrl: string | null;
   role: Role;
+  business: Business;
   active: boolean;
 };
 
@@ -30,6 +33,7 @@ export type VehicleRecord = {
   color: string | null;
   notes: string | null;
   imageUrl: string | null;
+  business: Business;
   active: boolean;
 };
 
@@ -87,6 +91,7 @@ export type ScheduleEvent = {
   venue: string | null;
   address: string | null;
   clientName: string | null;
+  business: Business;
   status: EventStatus;
   callTime: string | null;
   departureTime: string | null;
@@ -103,7 +108,7 @@ export type ScheduleEvent = {
 
 export type CalendarEvent = Pick<
   ScheduleEvent,
-  "id" | "title" | "eventDate" | "venue" | "status" | "callTime"
+  "id" | "title" | "eventDate" | "venue" | "business" | "status" | "callTime"
 > & {
   staffCount: number;
 };

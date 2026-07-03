@@ -3,6 +3,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, X, Tent, Mic } from "lucide-react";
+import {
+  businessLabels,
+  defaultBusiness as fallbackBusiness,
+  type Business,
+} from "@/lib/businesses";
 import styles from "./quick-add-modal.module.css";
 
 type SpeechRecognitionEventLike = {
@@ -40,7 +45,13 @@ const loadingMessages = [
   "Finalizing events..."
 ];
 
-export function QuickAddModal({ onClose }: { onClose: () => void }) {
+export function QuickAddModal({
+  defaultBusiness = fallbackBusiness,
+  onClose,
+}: {
+  defaultBusiness?: Business;
+  onClose: () => void;
+}) {
   const router = useRouter();
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -139,7 +150,7 @@ export function QuickAddModal({ onClose }: { onClose: () => void }) {
       const response = await fetch("/api/events/parse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ business: defaultBusiness, text }),
       });
 
       const data = await response.json();
@@ -195,6 +206,12 @@ export function QuickAddModal({ onClose }: { onClose: () => void }) {
 
         <p className={styles.description}>
           Paste your unstructured schedule here (e.g., from WhatsApp). The AI will extract dates, times, crew, trucks, and items to automatically create your events.
+        </p>
+        <p
+          className={styles.businessHint}
+          data-business={defaultBusiness.toLowerCase()}
+        >
+          Adding to {businessLabels[defaultBusiness]}
         </p>
 
         {successCount !== null ? (

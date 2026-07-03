@@ -41,7 +41,10 @@ export default async function OnlyMePage({
   const calendarEvents = await getCalendarEvents(
     formatDateKey(rangeStart),
     formatDateKey(rangeEnd),
-    session.id,
+    {
+      assignedUserId: session.id,
+      businesses: [session.business],
+    },
   );
 
   return (

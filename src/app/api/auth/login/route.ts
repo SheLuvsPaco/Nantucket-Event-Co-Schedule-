@@ -36,9 +36,12 @@ export async function POST(request: Request) {
       email: user.email,
       avatarUrl: user.avatarUrl,
       role: user.role,
+      business: user.business,
     });
 
-    return Response.json({ user: { name: user.name, role: user.role } });
+    return Response.json({
+      user: { name: user.name, role: user.role, business: user.business },
+    });
   } catch (error) {
     return apiError(error);
   }

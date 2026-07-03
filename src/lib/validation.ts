@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { eventStatuses, roles } from "@/db/schema";
+import { businesses, defaultBusiness } from "@/lib/businesses";
 import { crewRoles } from "@/lib/roles";
 
 const optionalText = z
@@ -45,6 +46,7 @@ export const inventorySchema = z.object({
     .optional()
     .transform((value) => value || null),
   notes: optionalText,
+  business: z.enum(businesses).default(defaultBusiness),
   active: z.boolean().default(true),
 });
 
@@ -59,6 +61,7 @@ export const vehicleSchema = z.object({
     .optional()
     .transform((value) => value || null),
   notes: optionalText,
+  business: z.enum(businesses).default(defaultBusiness),
   active: z.boolean().default(true),
 });
 
@@ -67,13 +70,19 @@ export const userSchema = z.object({
   email: z.string().trim().email().transform((value) => value.toLowerCase()),
   phone: optionalText,
   role: z.enum(roles),
+  business: z.enum(businesses).default(defaultBusiness),
   password: z.union([z.string().min(8).max(200), z.literal("")]).optional(),
   active: z.boolean().default(true),
 });
 
-export const crewRoleUpdateSchema = z.object({
-  role: z.enum(crewRoles),
-});
+export const crewProfileUpdateSchema = z
+  .object({
+    role: z.enum(crewRoles).optional(),
+    business: z.enum(businesses).optional(),
+  })
+  .refine((value) => value.role || value.business, {
+    message: "Choose a role or business to update.",
+  });
 
 export const managementInvoiceSchema = z.object({
   eventName: z.string().trim().min(2).max(160),
@@ -173,6 +182,7 @@ export const eventSchema = z.object({
   venue: optionalText,
   address: optionalText,
   clientName: optionalText,
+  business: z.enum(businesses).default(defaultBusiness),
   status: z.preprocess(
     (value) => (eventStatuses.includes(value as never) ? value : "DRAFT"),
     z.enum(eventStatuses),

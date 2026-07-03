@@ -80,6 +80,34 @@
   line-height: 1.5;
 }
 
+.businessHint {
+  align-self: flex-start;
+  margin: -4px 0 0;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: var(--branch-bg);
+  color: var(--branch-ink);
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.businessHint[data-business="tents"] {
+  --branch-bg: oklch(91% 0.04 245);
+  --branch-ink: var(--navy);
+}
+
+.businessHint[data-business="soiree"] {
+  --branch-bg: oklch(93% 0.045 348);
+  --branch-ink: oklch(36% 0.105 345);
+}
+
+.businessHint[data-business="place_setters"] {
+  --branch-bg: oklch(92% 0.052 145);
+  --branch-ink: oklch(32% 0.08 145);
+}
+
 .success {
   padding: 16px;
   border-radius: 9px;

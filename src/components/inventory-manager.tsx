@@ -11,6 +11,12 @@ import {
   Search,
   X,
 } from "lucide-react";
+import {
+  businesses,
+  businessLabels,
+  defaultBusiness,
+  type Business,
+} from "@/lib/businesses";
 import type { InventoryRecord } from "@/types";
 import styles from "./resource-manager.module.css";
 
@@ -21,8 +27,11 @@ const emptyItem: Omit<InventoryRecord, "id"> = {
   size: "",
   imageUrl: "",
   notes: "",
+  business: defaultBusiness,
   active: true,
 };
+
+type BusinessFilter = "ALL" | Business;
 
 export function InventoryManager({
   initialItems,
@@ -32,6 +41,7 @@ export function InventoryManager({
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
+  const [businessFilter, setBusinessFilter] = useState<BusinessFilter>("ALL");
   const [editing, setEditing] = useState<InventoryRecord | null>(null);
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState(emptyItem);
@@ -48,17 +58,21 @@ export function InventoryManager({
     const needle = query.trim().toLowerCase();
     return initialItems.filter(
       (item) =>
+        (businessFilter === "ALL" || item.business === businessFilter) &&
         (category === "All" || item.category === category) &&
         (!needle ||
           item.name.toLowerCase().includes(needle) ||
           item.size?.toLowerCase().includes(needle) ||
           item.notes?.toLowerCase().includes(needle)),
     );
-  }, [category, initialItems, query]);
+  }, [businessFilter, category, initialItems, query]);
 
   function startCreate() {
     setEditing(null);
-    setDraft(emptyItem);
+    setDraft({
+      ...emptyItem,
+      business: businessFilter === "ALL" ? defaultBusiness : businessFilter,
+    });
     setCreating(true);
     setError("");
   }
@@ -73,6 +87,7 @@ export function InventoryManager({
       size: item.size ?? "",
       imageUrl: item.imageUrl ?? "",
       notes: item.notes ?? "",
+      business: item.business,
       active: item.active,
     });
     setError("");
@@ -208,6 +223,21 @@ export function InventoryManager({
           />
         </div>
         <select
+          aria-label="Filter inventory by business"
+          className="select"
+          value={businessFilter}
+          onChange={(event) =>
+            setBusinessFilter(event.target.value as BusinessFilter)
+          }
+        >
+          <option value="ALL">All branches</option>
+          {businesses.map((business) => (
+            <option key={business} value={business}>
+              {businessLabels[business]}
+            </option>
+          ))}
+        </select>
+        <select
           aria-label="Filter by category"
           className="select"
           value={category}
@@ -261,6 +291,26 @@ export function InventoryManager({
                   />
                 </div>
                 <div className="field">
+                  <label htmlFor="inventory-business">Business</label>
+                  <select
+                    className="select"
+                    id="inventory-business"
+                    value={draft.business}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        business: event.target.value as Business,
+                      }))
+                    }
+                  >
+                    {businesses.map((business) => (
+                      <option key={business} value={business}>
+                        {businessLabels[business]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field">
                   <label htmlFor="inventory-category">Category</label>
                   <input
                     className="input"
@@ -275,6 +325,8 @@ export function InventoryManager({
                     placeholder="Tents"
                   />
                 </div>
+              </div>
+              <div className="form-grid form-grid-3">
                 <div className="field">
                   <label htmlFor="inventory-quantity">Count available</label>
                   <input
@@ -291,8 +343,6 @@ export function InventoryManager({
                     }
                   />
                 </div>
-              </div>
-              <div className="form-grid form-grid-2">
                 <div className="field">
                   <label htmlFor="inventory-size">Size</label>
                   <input
@@ -396,12 +446,12 @@ export function InventoryManager({
 
       <div className={styles.summary}>
         <span>
-          <strong>{initialItems.filter((item) => item.active).length}</strong>
+          <strong>{filtered.filter((item) => item.active).length}</strong>
           active items
         </span>
         <span>
           <strong>
-            {initialItems
+            {filtered
               .filter((item) => item.active)
               .reduce((total, item) => total + item.quantity, 0)}
           </strong>
@@ -427,6 +477,9 @@ export function InventoryManager({
               <div className={styles.cardBody}>
                 <div className={styles.cardTop}>
                   <span>{item.category}</span>
+                  {businessFilter === "ALL" ? (
+                    <span>{businessLabels[item.business]}</span>
+                  ) : null}
                   <button
                     aria-label={`Edit ${item.name}`}
                     className="icon-button"

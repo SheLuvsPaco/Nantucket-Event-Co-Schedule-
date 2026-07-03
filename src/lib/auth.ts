@@ -4,6 +4,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { type Role, users } from "@/db/schema";
+import type { Business } from "@/lib/businesses";
 import { env } from "@/lib/env";
 import { isRole } from "@/lib/roles";
 
@@ -13,6 +14,7 @@ export type SessionUser = {
   email: string;
   avatarUrl: string | null;
   role: Role;
+  business: Business;
 };
 
 const secret = new TextEncoder().encode(env.AUTH_SECRET);
@@ -65,13 +67,14 @@ export async function getSession(): Promise<SessionUser | null> {
     }
 
     const [user] = await db
-      .select({
-        id: users.id,
-        name: users.name,
-        email: users.email,
-        avatarUrl: users.avatarUrl,
-        role: users.role,
-      })
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      avatarUrl: users.avatarUrl,
+      role: users.role,
+      business: users.business,
+    })
       .from(users)
       .where(and(eq(users.id, payload.sub), eq(users.active, true)))
       .limit(1);

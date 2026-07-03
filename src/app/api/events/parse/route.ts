@@ -1,6 +1,6 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { APICallError, generateText, NoOutputGeneratedError, Output } from "ai";
-import { eq, gte } from "drizzle-orm";
+import { and, eq, gte } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import {
@@ -14,6 +14,7 @@ import {
   vehicles,
 } from "@/db/schema";
 import { requireApiSession } from "@/lib/auth";
+import { businesses, businessLabels, defaultBusiness } from "@/lib/businesses";
 import { getTodayKey } from "@/lib/date";
 import { env } from "@/lib/env";
 import { apiError } from "@/lib/http";
@@ -26,6 +27,7 @@ import {
 } from "@/lib/quick-add";
 
 const requestSchema = z.object({
+  business: z.enum(businesses).default(defaultBusiness),
   text: z.string().trim().min(1).max(50_000),
 });
 
@@ -34,7 +36,7 @@ export async function POST(request: Request) {
   if (auth.error) return auth.error;
 
   try {
-    const { text } = requestSchema.parse(await request.json());
+    const { business, text } = requestSchema.parse(await request.json());
 
     if (!env.OPENAI_API_KEY) {
       return Response.json(
@@ -50,7 +52,7 @@ export async function POST(request: Request) {
       db
         .select({ id: users.id, name: users.name })
         .from(users)
-        .where(eq(users.active, true)),
+        .where(and(eq(users.active, true), eq(users.business, business))),
       db
         .select({
           id: vehicles.id,
@@ -59,7 +61,7 @@ export async function POST(request: Request) {
           color: vehicles.color,
         })
         .from(vehicles)
-        .where(eq(vehicles.active, true)),
+        .where(and(eq(vehicles.active, true), eq(vehicles.business, business))),
       db
         .select({
           id: inventoryItems.id,
@@ -68,7 +70,9 @@ export async function POST(request: Request) {
           size: inventoryItems.size,
         })
         .from(inventoryItems)
-        .where(eq(inventoryItems.active, true)),
+        .where(
+          and(eq(inventoryItems.active, true), eq(inventoryItems.business, business)),
+        ),
     ]);
 
     const staffList = dbStaff.map((item) => `${item.id}: ${item.name}`).join("\n");
@@ -98,7 +102,7 @@ export async function POST(request: Request) {
         venue: events.venue,
       })
       .from(events)
-      .where(gte(events.eventDate, today))
+      .where(and(gte(events.eventDate, today), eq(events.business, business)))
       .limit(50);
 
     const eventList = dbEvents
@@ -114,6 +118,7 @@ ${eventList || "No upcoming events found."}
 If the user's message is updating or adding details to an existing event from the list above, return its exact ID in the \`eventId\` field. If they are describing a new event, leave \`eventId\` null.
 
 SCHEDULING RULES:
+- The branch for this import is ${businessLabels[business]}. Every created or updated event from this message belongs to ${businessLabels[business]}.
 - A date-level "Warehouse call" applies to EVERY operational event that follows on that date until another warehouse call or date appears. Put that inherited time in callTime. Owner/Porter visits do not inherit warehouse calls.
 - Group tasks into one event when they share the same crew and vehicles. Keep unrelated teams or workstreams separate.
 - The event title is ALWAYS the location where the team must go. For one location, use that location alone, such as "Galley Beach." For multiple stops, use the chronological route, such as "Nancy Ann → 45 Tomahawk → Wauwinet." Never use an action such as "Install floor" as the title and never return a missing title when a location appears in the source.
@@ -209,6 +214,7 @@ ${inventoryList || "No inventory records available."}`;
               eventDate: event.eventDate,
               venue: event.venue,
               address: event.address,
+              business,
               callTime: event.callTime,
               notes: event.notes,
             })
@@ -231,6 +237,7 @@ ${inventoryList || "No inventory records available."}`;
             venue: event.venue,
             address: event.address,
             clientName: null,
+            business,
             status: "CONFIRMED",
             callTime: event.callTime,
             departureTime: null,

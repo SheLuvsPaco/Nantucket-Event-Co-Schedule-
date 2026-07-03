@@ -5,12 +5,18 @@ import { requireApiSession } from "@/lib/auth";
 import { getPeople } from "@/lib/data";
 import { apiError } from "@/lib/http";
 import { createId } from "@/lib/ids";
+import { isCrewRole } from "@/lib/roles";
 import { userSchema } from "@/lib/validation";
 
 export async function GET() {
   const auth = await requireApiSession();
   if (auth.error) return auth.error;
-  return Response.json(await getPeople(auth.session.role === "ADMIN"));
+  return Response.json(
+    await getPeople(
+      auth.session.role === "ADMIN",
+      isCrewRole(auth.session.role) ? [auth.session.business] : undefined,
+    ),
+  );
 }
 
 export async function POST(request: Request) {
@@ -35,6 +41,7 @@ export async function POST(request: Request) {
         phone: input.phone,
         avatarUrl: null,
         role: input.role,
+        business: input.business,
         active: input.active,
         passwordHash: await hash(input.password, 12),
       })
@@ -45,6 +52,7 @@ export async function POST(request: Request) {
         phone: users.phone,
         avatarUrl: users.avatarUrl,
         role: users.role,
+        business: users.business,
         active: users.active,
       });
 

@@ -4,6 +4,12 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, Pencil, Plus, Search, UserRound, X } from "lucide-react";
 import type { Role } from "@/db/schema";
+import {
+  businesses,
+  businessLabels,
+  defaultBusiness,
+  type Business,
+} from "@/lib/businesses";
 import { isCrewRole, roleLabel, type CrewRole } from "@/lib/roles";
 import type { UserRecord } from "@/types";
 import { UserAvatar } from "./user-avatar";
@@ -17,9 +23,12 @@ const emptyPerson: TeamDraft = {
   phone: "",
   avatarUrl: null,
   role: "STAFF",
+  business: defaultBusiness,
   active: true,
   password: "",
 };
+
+type BusinessFilter = "ALL" | Business;
 
 export function TeamManager({
   initialPeople,
@@ -34,6 +43,7 @@ export function TeamManager({
   const isAdmin = viewerRole === "ADMIN";
   const [query, setQuery] = useState("");
   const [role, setRole] = useState<"ALL" | Role>("ALL");
+  const [businessFilter, setBusinessFilter] = useState<BusinessFilter>("ALL");
   const [editing, setEditing] = useState<UserRecord | null>(null);
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState<TeamDraft>(emptyPerson);
@@ -42,25 +52,37 @@ export function TeamManager({
   const [roleOverrides, setRoleOverrides] = useState<
     Partial<Record<string, CrewRole>>
   >({});
+  const [businessOverrides, setBusinessOverrides] = useState<
+    Partial<Record<string, Business>>
+  >({});
   const [error, setError] = useState("");
 
   const filtered = useMemo(() => {
     const needle = query.toLowerCase().trim();
     return initialPeople.filter(
-      (person) =>
-        (role === "ALL" || person.role === role) &&
-        (!needle ||
-          person.name.toLowerCase().includes(needle) ||
-          person.email.toLowerCase().includes(needle) ||
-          person.phone?.toLowerCase().includes(needle)),
+      (person) => {
+        const currentRole = roleOverrides[person.id] ?? person.role;
+        const currentBusiness = businessOverrides[person.id] ?? person.business;
+        return (
+          (role === "ALL" || currentRole === role) &&
+          (businessFilter === "ALL" || currentBusiness === businessFilter) &&
+          (!needle ||
+            person.name.toLowerCase().includes(needle) ||
+            person.email.toLowerCase().includes(needle) ||
+            person.phone?.toLowerCase().includes(needle))
+        );
+      },
     );
-  }, [initialPeople, query, role]);
+  }, [businessFilter, businessOverrides, initialPeople, query, role, roleOverrides]);
 
   function startCreate() {
     if (!isAdmin) return;
     setEditing(null);
     setCreating(true);
-    setDraft(emptyPerson);
+    setDraft({
+      ...emptyPerson,
+      business: businessFilter === "ALL" ? defaultBusiness : businessFilter,
+    });
     setError("");
   }
 
@@ -74,6 +96,7 @@ export function TeamManager({
       phone: person.phone ?? "",
       avatarUrl: person.avatarUrl,
       role: person.role,
+      business: person.business,
       active: person.active,
       password: "",
     });
@@ -140,9 +163,19 @@ export function TeamManager({
     }
   }
 
-  async function changeCrewRole(person: UserRecord, nextRole: CrewRole) {
+  async function changeCrewProfile(
+    person: UserRecord,
+    update: { role?: CrewRole; business?: Business },
+  ) {
     const currentRole = roleOverrides[person.id] ?? person.role;
-    if (!isCrewRole(currentRole) || currentRole === nextRole) return;
+    const currentBusiness = businessOverrides[person.id] ?? person.business;
+    if (!isCrewRole(currentRole)) return;
+    if (
+      (!update.role || update.role === currentRole) &&
+      (!update.business || update.business === currentBusiness)
+    ) {
+      return;
+    }
 
     setPendingRoleId(person.id);
     setError("");
@@ -150,14 +183,22 @@ export function TeamManager({
       const response = await fetch(`/api/people/${person.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: nextRole }),
+        body: JSON.stringify(update),
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) {
         setError(data.error ?? "The role could not be changed.");
         return;
       }
-      setRoleOverrides((current) => ({ ...current, [person.id]: nextRole }));
+      if (update.role) {
+        setRoleOverrides((current) => ({ ...current, [person.id]: update.role }));
+      }
+      if (update.business) {
+        setBusinessOverrides((current) => ({
+          ...current,
+          [person.id]: update.business,
+        }));
+      }
       router.refresh();
     } catch {
       setError("We could not reach the schedule. Check your connection and try again.");
@@ -191,6 +232,21 @@ export function TeamManager({
           <option value="OWNER">Owners</option>
           <option value="LEAD">Leads</option>
           <option value="STAFF">Staff</option>
+        </select>
+        <select
+          aria-label="Filter team by business"
+          className="select"
+          value={businessFilter}
+          onChange={(event) =>
+            setBusinessFilter(event.target.value as BusinessFilter)
+          }
+        >
+          <option value="ALL">All branches</option>
+          {businesses.map((business) => (
+            <option key={business} value={business}>
+              {businessLabels[business]}
+            </option>
+          ))}
         </select>
         {isAdmin ? (
           <button className="button button-primary" onClick={startCreate} type="button">
@@ -247,6 +303,26 @@ export function TeamManager({
                     <option value="LEAD">Lead</option>
                     <option value="OWNER">Owner</option>
                     <option value="ADMIN">Admin</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label htmlFor="person-business">Business allocation</label>
+                  <select
+                    className="select"
+                    id="person-business"
+                    value={draft.business}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        business: event.target.value as Business,
+                      }))
+                    }
+                  >
+                    {businesses.map((business) => (
+                      <option key={business} value={business}>
+                        {businessLabels[business]}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="field">
@@ -372,6 +448,11 @@ export function TeamManager({
                 <p>{person.email}</p>
                 <div className={styles.listMeta}>
                   <span>{roleLabel(roleOverrides[person.id] ?? person.role)}</span>
+                  <span>
+                    {businessLabels[
+                      businessOverrides[person.id] ?? person.business
+                    ]}
+                  </span>
                   {person.phone ? <span>{person.phone}</span> : null}
                   {!person.active ? <span>Inactive</span> : null}
                 </div>
@@ -386,21 +467,46 @@ export function TeamManager({
                   <Pencil aria-hidden="true" />
                 </button>
               ) : isCrewRole(person.role) ? (
-                <div className={styles.roleEditor}>
-                  <label htmlFor={`role-${person.id}`}>Crew role</label>
-                  <select
-                    aria-label={`Change ${person.name}'s role`}
-                    className="select"
-                    disabled={pendingRoleId === person.id}
-                    id={`role-${person.id}`}
-                    onChange={(event) =>
-                      changeCrewRole(person, event.target.value as CrewRole)
-                    }
-                    value={roleOverrides[person.id] ?? person.role}
-                  >
-                    <option value="STAFF">Staff</option>
-                    <option value="LEAD">Lead</option>
-                  </select>
+                <div className={styles.profileEditors}>
+                  <div className={styles.roleEditor}>
+                    <label htmlFor={`role-${person.id}`}>Crew role</label>
+                    <select
+                      aria-label={`Change ${person.name}'s role`}
+                      className="select"
+                      disabled={pendingRoleId === person.id}
+                      id={`role-${person.id}`}
+                      onChange={(event) =>
+                        changeCrewProfile(person, {
+                          role: event.target.value as CrewRole,
+                        })
+                      }
+                      value={roleOverrides[person.id] ?? person.role}
+                    >
+                      <option value="STAFF">Staff</option>
+                      <option value="LEAD">Lead</option>
+                    </select>
+                  </div>
+                  <div className={styles.roleEditor}>
+                    <label htmlFor={`business-${person.id}`}>Business</label>
+                    <select
+                      aria-label={`Change ${person.name}'s business`}
+                      className="select"
+                      disabled={pendingRoleId === person.id}
+                      id={`business-${person.id}`}
+                      onChange={(event) =>
+                        changeCrewProfile(person, {
+                          business: event.target.value as Business,
+                        })
+                      }
+                      value={businessOverrides[person.id] ?? person.business}
+                    >
+                      {businesses.map((business) => (
+                        <option key={business} value={business}>
+                          {businessLabels[business]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               ) : (
                 <span className={styles.adminManaged}>Admin managed</span>

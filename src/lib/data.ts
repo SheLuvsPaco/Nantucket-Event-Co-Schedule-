@@ -8,6 +8,7 @@ import {
   users,
   vehicles,
 } from "@/db/schema";
+import { defaultBusiness, type Business } from "@/lib/businesses";
 import type {
   CalendarEvent,
   InventoryRecord,
@@ -17,7 +18,19 @@ import type {
   VehicleRecord,
 } from "@/types";
 
-export async function getInventory(includeInactive = false): Promise<InventoryRecord[]> {
+type BusinessQueryOptions = {
+  assignedUserId?: string;
+  businesses?: Business[];
+};
+
+function businessFilter<TColumn>(column: TColumn, selected?: Business[]) {
+  return selected?.length ? inArray(column as never, selected) : undefined;
+}
+
+export async function getInventory(
+  includeInactive = false,
+  selectedBusinesses?: Business[],
+): Promise<InventoryRecord[]> {
   return db
     .select({
       id: inventoryItems.id,
@@ -27,14 +40,27 @@ export async function getInventory(includeInactive = false): Promise<InventoryRe
       size: inventoryItems.size,
       imageUrl: inventoryItems.imageUrl,
       notes: inventoryItems.notes,
+      business: inventoryItems.business,
       active: inventoryItems.active,
     })
     .from(inventoryItems)
-    .where(includeInactive ? undefined : eq(inventoryItems.active, true))
-    .orderBy(asc(inventoryItems.category), asc(inventoryItems.name));
+    .where(
+      and(
+        includeInactive ? undefined : eq(inventoryItems.active, true),
+        businessFilter(inventoryItems.business, selectedBusinesses),
+      ),
+    )
+    .orderBy(
+      asc(inventoryItems.business),
+      asc(inventoryItems.category),
+      asc(inventoryItems.name),
+    );
 }
 
-export async function getPeople(includeInactive = false): Promise<UserRecord[]> {
+export async function getPeople(
+  includeInactive = false,
+  selectedBusinesses?: Business[],
+): Promise<UserRecord[]> {
   return db
     .select({
       id: users.id,
@@ -43,14 +69,23 @@ export async function getPeople(includeInactive = false): Promise<UserRecord[]> 
       phone: users.phone,
       avatarUrl: users.avatarUrl,
       role: users.role,
+      business: users.business,
       active: users.active,
     })
     .from(users)
-    .where(includeInactive ? undefined : eq(users.active, true))
-    .orderBy(asc(users.name));
+    .where(
+      and(
+        includeInactive ? undefined : eq(users.active, true),
+        businessFilter(users.business, selectedBusinesses),
+      ),
+    )
+    .orderBy(asc(users.business), asc(users.name));
 }
 
-export async function getVehicles(includeInactive = false): Promise<VehicleRecord[]> {
+export async function getVehicles(
+  includeInactive = false,
+  selectedBusinesses?: Business[],
+): Promise<VehicleRecord[]> {
   return db
     .select({
       id: vehicles.id,
@@ -61,11 +96,17 @@ export async function getVehicles(includeInactive = false): Promise<VehicleRecor
       color: vehicles.color,
       notes: vehicles.notes,
       imageUrl: vehicles.imageUrl,
+      business: vehicles.business,
       active: vehicles.active,
     })
     .from(vehicles)
-    .where(includeInactive ? undefined : eq(vehicles.active, true))
-    .orderBy(asc(vehicles.name));
+    .where(
+      and(
+        includeInactive ? undefined : eq(vehicles.active, true),
+        businessFilter(vehicles.business, selectedBusinesses),
+      ),
+    )
+    .orderBy(asc(vehicles.business), asc(vehicles.name));
 }
 
 function mapManagementInvoice(
@@ -147,6 +188,7 @@ export async function getManagementInvoiceCalendar(
   return rows.map((invoice) => ({
     ...invoice,
     venue: null,
+    business: defaultBusiness,
     status: "CONFIRMED",
     staffCount: 0,
   }));
@@ -155,21 +197,22 @@ export async function getManagementInvoiceCalendar(
 export async function getCalendarEvents(
   startDate: string,
   endDate: string,
-  assignedUserId?: string,
+  options: BusinessQueryOptions = {},
 ): Promise<CalendarEvent[]> {
-  const assignedEventIds = assignedUserId
+  const assignedEventIds = options.assignedUserId
     ? db
         .select({ eventId: eventStaff.eventId })
         .from(eventStaff)
-        .where(eq(eventStaff.userId, assignedUserId))
+        .where(eq(eventStaff.userId, options.assignedUserId))
     : null;
   const rows = await db.query.events.findMany({
     where: and(
       gte(events.eventDate, startDate),
       lte(events.eventDate, endDate),
       assignedEventIds ? inArray(events.id, assignedEventIds) : undefined,
+      businessFilter(events.business, options.businesses),
     ),
-    orderBy: [asc(events.eventDate), asc(events.callTime)],
+    orderBy: [asc(events.eventDate), asc(events.business), asc(events.callTime)],
     with: {
       staff: true,
     },
@@ -180,6 +223,7 @@ export async function getCalendarEvents(
     title: event.title,
     eventDate: event.eventDate,
     venue: event.venue,
+    business: event.business,
     status: event.status,
     callTime: event.callTime,
     staffCount: event.staff.length,
@@ -215,6 +259,7 @@ export async function getEventById(id: string): Promise<ScheduleEvent | null> {
     venue: event.venue,
     address: event.address,
     clientName: event.clientName,
+    business: event.business,
     status: event.status,
     callTime: event.callTime,
     departureTime: event.departureTime,
@@ -230,6 +275,7 @@ export async function getEventById(id: string): Promise<ScheduleEvent | null> {
           phone: event.packer.phone,
           avatarUrl: event.packer.avatarUrl,
           role: event.packer.role,
+          business: event.packer.business,
           active: event.packer.active,
         }
       : null,
@@ -254,6 +300,7 @@ export async function getEventById(id: string): Promise<ScheduleEvent | null> {
         size: entry.item.size,
         imageUrl: entry.item.imageUrl,
         notes: entry.item.notes,
+        business: entry.item.business,
         active: entry.item.active,
       },
     })),
@@ -269,6 +316,7 @@ export async function getEventById(id: string): Promise<ScheduleEvent | null> {
         phone: entry.user.phone,
         avatarUrl: entry.user.avatarUrl,
         role: entry.user.role,
+        business: entry.user.business,
         active: entry.user.active,
       },
     })),
@@ -287,6 +335,7 @@ export async function getEventById(id: string): Promise<ScheduleEvent | null> {
         color: entry.vehicle.color,
         imageUrl: entry.vehicle.imageUrl,
         notes: entry.vehicle.notes,
+        business: entry.vehicle.business,
         active: entry.vehicle.active,
       },
       driver: entry.driver
@@ -297,6 +346,7 @@ export async function getEventById(id: string): Promise<ScheduleEvent | null> {
             phone: entry.driver.phone,
             avatarUrl: entry.driver.avatarUrl,
             role: entry.driver.role,
+            business: entry.driver.business,
             active: entry.driver.active,
           }
         : null,
@@ -306,20 +356,21 @@ export async function getEventById(id: string): Promise<ScheduleEvent | null> {
 
 export async function getEventsForDate(
   date: string,
-  assignedUserId?: string,
+  options: BusinessQueryOptions = {},
 ): Promise<ScheduleEvent[]> {
-  const assignedEventIds = assignedUserId
+  const assignedEventIds = options.assignedUserId
     ? db
         .select({ eventId: eventStaff.eventId })
         .from(eventStaff)
-        .where(eq(eventStaff.userId, assignedUserId))
+        .where(eq(eventStaff.userId, options.assignedUserId))
     : null;
   const rows = await db.query.events.findMany({
     where: and(
       eq(events.eventDate, date),
       assignedEventIds ? inArray(events.id, assignedEventIds) : undefined,
+      businessFilter(events.business, options.businesses),
     ),
-    orderBy: [asc(events.callTime), asc(events.title)],
+    orderBy: [asc(events.business), asc(events.callTime), asc(events.title)],
     with: {
       packer: true,
       timeline: {
@@ -344,6 +395,7 @@ export async function getEventsForDate(
     venue: event.venue,
     address: event.address,
     clientName: event.clientName,
+    business: event.business,
     status: event.status,
     callTime: event.callTime,
     departureTime: event.departureTime,
@@ -359,6 +411,7 @@ export async function getEventsForDate(
           phone: event.packer.phone,
           avatarUrl: event.packer.avatarUrl,
           role: event.packer.role,
+          business: event.packer.business,
           active: event.packer.active,
         }
       : null,
@@ -383,6 +436,7 @@ export async function getEventsForDate(
         size: entry.item.size,
         imageUrl: entry.item.imageUrl,
         notes: entry.item.notes,
+        business: entry.item.business,
         active: entry.item.active,
       },
     })),
@@ -398,6 +452,7 @@ export async function getEventsForDate(
         phone: entry.user.phone,
         avatarUrl: entry.user.avatarUrl,
         role: entry.user.role,
+        business: entry.user.business,
         active: entry.user.active,
       },
     })),
@@ -416,6 +471,7 @@ export async function getEventsForDate(
         color: entry.vehicle.color,
         notes: entry.vehicle.notes,
         imageUrl: entry.vehicle.imageUrl,
+        business: entry.vehicle.business,
         active: entry.vehicle.active,
       },
       driver: entry.driver
@@ -426,6 +482,7 @@ export async function getEventsForDate(
             phone: entry.driver.phone,
             avatarUrl: entry.driver.avatarUrl,
             role: entry.driver.role,
+            business: entry.driver.business,
             active: entry.driver.active,
           }
         : null,

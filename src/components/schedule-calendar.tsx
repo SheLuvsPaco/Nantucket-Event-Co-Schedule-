@@ -26,12 +26,14 @@ export function ScheduleCalendar({
   events,
   itemNoun = "events",
   monthKey,
+  querySuffix = "",
   todayKey,
 }: {
   basePath?: string;
   events: CalendarEvent[];
   itemNoun?: string;
   monthKey: string;
+  querySuffix?: string;
   todayKey: string;
 }) {
   const router = useRouter();
@@ -96,19 +98,24 @@ export function ScheduleCalendar({
               className={styles.day}
               data-outside={outside}
               data-today={isToday}
-              href={`${basePath}/${dateKey}`}
+              href={`${basePath}/${dateKey}${querySuffix}`}
               key={dateKey}
             >
               <span className={styles.dateNumber}>{format(day, "d")}</span>
               <span className={styles.mobileDots} aria-hidden="true">
                 {dayEvents.slice(0, 3).map((event) => (
-                  <i data-status={event.status.toLowerCase()} key={event.id} />
+                  <i
+                    data-business={event.business.toLowerCase()}
+                    data-status={event.status.toLowerCase()}
+                    key={event.id}
+                  />
                 ))}
               </span>
               <span className={styles.events}>
                 {dayEvents.slice(0, 3).map((event) => (
                   <span
                     className={styles.event}
+                    data-business={event.business.toLowerCase()}
                     data-status={event.status.toLowerCase()}
                     key={event.id}
                   >

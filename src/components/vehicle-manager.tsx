@@ -4,6 +4,12 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Archive, Pencil, Plus, Search, Truck, X } from "lucide-react";
+import {
+  businesses,
+  businessLabels,
+  defaultBusiness,
+  type Business,
+} from "@/lib/businesses";
 import type { VehicleRecord } from "@/types";
 import styles from "./resource-manager.module.css";
 
@@ -15,8 +21,11 @@ const emptyVehicle: Omit<VehicleRecord, "id"> = {
   color: "",
   notes: "",
   imageUrl: null,
+  business: defaultBusiness,
   active: true,
 };
+
+type BusinessFilter = "ALL" | Business;
 
 export function VehicleManager({
   initialVehicles,
@@ -25,6 +34,7 @@ export function VehicleManager({
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
+  const [businessFilter, setBusinessFilter] = useState<BusinessFilter>("ALL");
   const [editing, setEditing] = useState<VehicleRecord | null>(null);
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState(emptyVehicle);
@@ -35,22 +45,27 @@ export function VehicleManager({
 
   const filtered = useMemo(() => {
     const needle = query.toLowerCase().trim();
-    if (!needle) return initialVehicles;
-    return initialVehicles.filter((vehicle) =>
-      [
-        vehicle.name,
-        vehicle.type,
-        vehicle.plate,
-        vehicle.capacity,
-        vehicle.notes,
-      ].some((value) => value?.toLowerCase().includes(needle)),
+    return initialVehicles.filter(
+      (vehicle) =>
+        (businessFilter === "ALL" || vehicle.business === businessFilter) &&
+        (!needle ||
+          [
+            vehicle.name,
+            vehicle.type,
+            vehicle.plate,
+            vehicle.capacity,
+            vehicle.notes,
+          ].some((value) => value?.toLowerCase().includes(needle))),
     );
-  }, [initialVehicles, query]);
+  }, [businessFilter, initialVehicles, query]);
 
   function startCreate() {
     setEditing(null);
     setCreating(true);
-    setDraft(emptyVehicle);
+    setDraft({
+      ...emptyVehicle,
+      business: businessFilter === "ALL" ? defaultBusiness : businessFilter,
+    });
     setError("");
   }
 
@@ -65,6 +80,7 @@ export function VehicleManager({
       color: vehicle.color ?? "",
       notes: vehicle.notes ?? "",
       imageUrl: vehicle.imageUrl ?? null,
+      business: vehicle.business,
       active: vehicle.active,
     });
     setError("");
@@ -202,7 +218,21 @@ export function VehicleManager({
             placeholder="Search vehicle, plate, or note"
           />
         </div>
-        <span />
+        <select
+          aria-label="Filter vehicles by business"
+          className="select"
+          value={businessFilter}
+          onChange={(event) =>
+            setBusinessFilter(event.target.value as BusinessFilter)
+          }
+        >
+          <option value="ALL">All branches</option>
+          {businesses.map((business) => (
+            <option key={business} value={business}>
+              {businessLabels[business]}
+            </option>
+          ))}
+        </select>
         <button className="button button-primary" onClick={startCreate} type="button">
           <Plus aria-hidden="true" /> Add vehicle
         </button>
@@ -240,6 +270,26 @@ export function VehicleManager({
                   />
                 </div>
                 <div className="field">
+                  <label htmlFor="vehicle-business">Business</label>
+                  <select
+                    className="select"
+                    id="vehicle-business"
+                    value={draft.business}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        business: event.target.value as Business,
+                      }))
+                    }
+                  >
+                    {businesses.map((business) => (
+                      <option key={business} value={business}>
+                        {businessLabels[business]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field">
                   <label htmlFor="vehicle-type">Type</label>
                   <input
                     className="input"
@@ -251,6 +301,8 @@ export function VehicleManager({
                     placeholder="26 ft Box Truck"
                   />
                 </div>
+              </div>
+              <div className="form-grid form-grid-3">
                 <div className="field">
                   <label htmlFor="vehicle-capacity">Capacity</label>
                   <input
@@ -266,8 +318,6 @@ export function VehicleManager({
                     placeholder="26,000 lb GVWR"
                   />
                 </div>
-              </div>
-              <div className="form-grid form-grid-2">
                 <div className="field">
                   <label htmlFor="vehicle-plate">Plate / identifier</label>
                   <input
@@ -413,6 +463,9 @@ export function VehicleManager({
                 <h2>{vehicle.name}</h2>
                 <p>{vehicle.notes || "No fleet notes"}</p>
                 <div className={styles.listMeta}>
+                  {businessFilter === "ALL" ? (
+                    <span>{businessLabels[vehicle.business]}</span>
+                  ) : null}
                   <span>{vehicle.type}</span>
                   {vehicle.plate ? <span>{vehicle.plate}</span> : null}
                   {vehicle.capacity ? <span>{vehicle.capacity}</span> : null}

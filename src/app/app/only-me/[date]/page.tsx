@@ -20,7 +20,10 @@ export default async function OnlyMeDayPage({
   ]);
   if (!isDateKey(date)) notFound();
 
-  const dayEvents = await getEventsForDate(date, session.id);
+  const dayEvents = await getEventsForDate(date, {
+    assignedUserId: session.id,
+    businesses: [session.business],
+  });
 
   return (
     <StaffDayView

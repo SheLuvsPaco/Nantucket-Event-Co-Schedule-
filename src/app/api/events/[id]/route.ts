@@ -82,6 +82,7 @@ export async function PATCH(request: Request, context: Context) {
       venue: previous.venue,
       address: previous.address,
       clientName: previous.clientName,
+      business: previous.business,
       status: previous.status,
       callTime: previous.callTime,
       departureTime: previous.departureTime,
@@ -122,6 +123,7 @@ export async function PATCH(request: Request, context: Context) {
       venue: input.venue,
       address: input.address,
       clientName: input.clientName,
+      business: input.business,
       status: input.status,
       callTime: input.callTime,
       departureTime: input.departureTime,
@@ -153,6 +155,7 @@ export async function PATCH(request: Request, context: Context) {
           venue: input.venue,
           address: input.address,
           clientName: input.clientName,
+          business: input.business,
           status: input.status,
           callTime: input.callTime,
           departureTime: input.departureTime,
@@ -202,9 +205,9 @@ export async function PATCH(request: Request, context: Context) {
       }
     });
 
-    const event = (await getEventsForDate(input.eventDate)).find(
-      (candidate) => candidate.id === id,
-    );
+    const event = (
+      await getEventsForDate(input.eventDate, { businesses: [input.business] })
+    ).find((candidate) => candidate.id === id);
 
     if (newlyAssignedUserIds.length || (eventChanged && retainedUserIds.length)) {
       after(async () => {

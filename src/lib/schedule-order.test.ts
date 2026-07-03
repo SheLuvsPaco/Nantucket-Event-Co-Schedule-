@@ -15,6 +15,7 @@ function event(
     venue: null,
     address: null,
     clientName: null,
+    business: "TENTS",
     status: "CONFIRMED",
     callTime,
     departureTime: null,

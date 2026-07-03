@@ -4,12 +4,18 @@ import { requireApiSession } from "@/lib/auth";
 import { getVehicles } from "@/lib/data";
 import { apiError } from "@/lib/http";
 import { createId } from "@/lib/ids";
+import { isCrewRole } from "@/lib/roles";
 import { vehicleSchema } from "@/lib/validation";
 
 export async function GET() {
   const auth = await requireApiSession();
   if (auth.error) return auth.error;
-  return Response.json(await getVehicles(auth.session.role === "ADMIN"));
+  return Response.json(
+    await getVehicles(
+      auth.session.role === "ADMIN",
+      isCrewRole(auth.session.role) ? [auth.session.business] : undefined,
+    ),
+  );
 }
 
 export async function POST(request: Request) {

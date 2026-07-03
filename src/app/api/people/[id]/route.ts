@@ -8,7 +8,7 @@ import { apiError } from "@/lib/http";
 import { leadPromotionNotification } from "@/lib/notification-content";
 import { sendPushToUsers } from "@/lib/push-notifications";
 import { isCrewRole } from "@/lib/roles";
-import { crewRoleUpdateSchema, userSchema } from "@/lib/validation";
+import { crewProfileUpdateSchema, userSchema } from "@/lib/validation";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -20,7 +20,7 @@ export async function PATCH(request: Request, context: Context) {
     const { id } = await context.params;
     const payload: unknown = await request.json();
     const [target] = await db
-      .select({ id: users.id, role: users.role })
+      .select({ id: users.id, role: users.role, business: users.business })
       .from(users)
       .where(eq(users.id, id))
       .limit(1);
@@ -33,17 +33,21 @@ export async function PATCH(request: Request, context: Context) {
     }
 
     if (auth.session.role === "OWNER") {
-      const input = crewRoleUpdateSchema.parse(payload);
+      const input = crewProfileUpdateSchema.parse(payload);
       if (!isCrewRole(target.role)) {
         return Response.json(
-          { error: "Owners can only change Staff and Lead roles." },
+          { error: "Owners can only update Staff and Lead profiles." },
           { status: 403 },
         );
       }
 
       const [user] = await db
         .update(users)
-        .set({ role: input.role, updatedAt: new Date() })
+        .set({
+          role: input.role ?? target.role,
+          business: input.business ?? target.business,
+          updatedAt: new Date(),
+        })
         .where(eq(users.id, id))
         .returning({
           id: users.id,
@@ -52,6 +56,7 @@ export async function PATCH(request: Request, context: Context) {
           phone: users.phone,
           avatarUrl: users.avatarUrl,
           role: users.role,
+          business: users.business,
           active: users.active,
         });
 
@@ -77,6 +82,7 @@ export async function PATCH(request: Request, context: Context) {
       email: input.email,
       phone: input.phone,
       role: input.role,
+      business: input.business,
       active: input.active,
       updatedAt: new Date(),
       passwordHash: "",
@@ -99,6 +105,7 @@ export async function PATCH(request: Request, context: Context) {
         phone: users.phone,
         avatarUrl: users.avatarUrl,
         role: users.role,
+        business: users.business,
         active: users.active,
       });
 

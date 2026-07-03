@@ -1,4 +1,4 @@
-import { and, asc, gte, lte } from "drizzle-orm";
+import { and, asc, eq, gte, lte } from "drizzle-orm";
 import { after } from "next/server";
 import { db } from "@/db";
 import {
@@ -14,6 +14,7 @@ import { apiError } from "@/lib/http";
 import { createId } from "@/lib/ids";
 import { eventAssignmentNotification } from "@/lib/notification-content";
 import { sendPushToUsers } from "@/lib/push-notifications";
+import { isCrewRole } from "@/lib/roles";
 import { eventSchema } from "@/lib/validation";
 
 export async function GET(request: Request) {
@@ -22,7 +23,14 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const date = url.searchParams.get("date");
-  if (date) return Response.json(await getEventsForDate(date));
+  const crewView = isCrewRole(auth.session.role);
+  if (date) {
+    return Response.json(
+      await getEventsForDate(date, {
+        businesses: crewView ? [auth.session.business] : undefined,
+      }),
+    );
+  }
 
   const start = url.searchParams.get("start");
   const end = url.searchParams.get("end");
@@ -30,9 +38,12 @@ export async function GET(request: Request) {
     .select()
     .from(events)
     .where(
-      start && end
-        ? and(gte(events.eventDate, start), lte(events.eventDate, end))
-        : undefined,
+      and(
+        start && end
+          ? and(gte(events.eventDate, start), lte(events.eventDate, end))
+          : undefined,
+        crewView ? eq(events.business, auth.session.business) : undefined,
+      ),
     )
     .orderBy(asc(events.eventDate), asc(events.callTime));
   return Response.json(rows);
@@ -54,6 +65,7 @@ export async function POST(request: Request) {
         venue: input.venue,
         address: input.address,
         clientName: input.clientName,
+        business: input.business,
         status: input.status,
         callTime: input.callTime,
         departureTime: input.departureTime,
@@ -94,7 +106,9 @@ export async function POST(request: Request) {
       }
     });
 
-    const dayEvents = await getEventsForDate(input.eventDate);
+    const dayEvents = await getEventsForDate(input.eventDate, {
+      businesses: [input.business],
+    });
     const event = dayEvents.find(
       (candidate) => candidate.id === eventId,
     );

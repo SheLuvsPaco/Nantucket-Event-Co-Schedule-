@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  crewRoleUpdateSchema,
+  crewProfileUpdateSchema,
   eventSchema,
   inventorySchema,
   loginSchema,
@@ -39,13 +39,20 @@ describe("validation schemas", () => {
     });
 
     expect(result.role).toBe("LEAD");
+    expect(result.business).toBe("TENTS");
   });
 
-  it("limits owner role changes to Staff and Lead", () => {
-    expect(crewRoleUpdateSchema.parse({ role: "LEAD" }).role).toBe("LEAD");
-    expect(crewRoleUpdateSchema.parse({ role: "STAFF" }).role).toBe("STAFF");
-    expect(crewRoleUpdateSchema.safeParse({ role: "OWNER" }).success).toBe(false);
-    expect(crewRoleUpdateSchema.safeParse({ role: "ADMIN" }).success).toBe(false);
+  it("limits owner profile changes to crew roles and valid businesses", () => {
+    expect(crewProfileUpdateSchema.parse({ role: "LEAD" }).role).toBe("LEAD");
+    expect(crewProfileUpdateSchema.parse({ role: "STAFF" }).role).toBe("STAFF");
+    expect(
+      crewProfileUpdateSchema.parse({ business: "SOIREE" }).business,
+    ).toBe("SOIREE");
+    expect(crewProfileUpdateSchema.safeParse({ role: "OWNER" }).success).toBe(false);
+    expect(crewProfileUpdateSchema.safeParse({ role: "ADMIN" }).success).toBe(false);
+    expect(
+      crewProfileUpdateSchema.safeParse({ business: "CATERING" }).success,
+    ).toBe(false);
   });
 
   it("accepts a management invoice with an optional time and notes", () => {
@@ -126,6 +133,7 @@ describe("validation schemas", () => {
 
     expect(result.title).toBe("Untitled event");
     expect(result.status).toBe("DRAFT");
+    expect(result.business).toBe("TENTS");
     expect(result.eventDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(result.timeline).toEqual([]);
     expect(result.inventory).toEqual([]);

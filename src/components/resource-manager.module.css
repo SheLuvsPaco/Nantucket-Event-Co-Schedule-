@@ -307,6 +307,13 @@
   gap: 5px;
 }
 
+.profileEditors {
+  display: grid;
+  min-width: min(280px, 100%);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
 .roleEditor label {
   color: var(--ink-faint);
   font-size: 0.66rem;
@@ -332,7 +339,7 @@
 
 @media (min-width: 680px) {
   .toolbar {
-    grid-template-columns: minmax(220px, 1fr) auto auto;
+    grid-template-columns: minmax(220px, 1fr) repeat(3, auto);
   }
 }
 
@@ -342,10 +349,21 @@
   }
 
   .roleEditor,
+  .profileEditors,
   .adminManaged,
   .listItem > :global(.icon-button) {
     grid-column: 2;
     justify-self: stretch;
+  }
+
+  .roleEditor {
+    min-width: 0;
+  }
+
+  .profileEditors {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 2px;
   }
 
   .adminManaged {

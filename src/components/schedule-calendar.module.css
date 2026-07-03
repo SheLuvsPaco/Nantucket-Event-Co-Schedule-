@@ -102,12 +102,24 @@
   background: var(--navy);
 }
 
+.mobileDots i[data-business="tents"] {
+  background: var(--light-blue);
+}
+
+.mobileDots i[data-business="soiree"] {
+  background: oklch(76% 0.13 348);
+}
+
+.mobileDots i[data-business="place_setters"] {
+  background: oklch(72% 0.13 145);
+}
+
 .mobileDots i[data-status="draft"] {
-  background: oklch(65% 0.14 83);
+  opacity: 0.65;
 }
 
 .mobileDots i[data-status="completed"] {
-  background: var(--ink-faint);
+  opacity: 0.35;
 }
 
 .events {
@@ -159,15 +171,32 @@
     padding: 3px 6px;
     overflow: hidden;
     border-radius: 5px;
-    background: oklch(91% 0.035 245);
-    color: var(--navy);
+    background: var(--event-bg, oklch(91% 0.035 245));
+    color: var(--event-ink, var(--navy));
     font-size: 0.68rem;
     line-height: 1.15;
   }
 
+  .event[data-business="tents"] {
+    --event-bg: oklch(90% 0.045 245);
+    --event-ink: var(--navy);
+  }
+
+  .event[data-business="soiree"] {
+    --event-bg: oklch(93% 0.045 348);
+    --event-ink: oklch(36% 0.105 345);
+  }
+
+  .event[data-business="place_setters"] {
+    --event-bg: oklch(92% 0.052 145);
+    --event-ink: oklch(32% 0.08 145);
+  }
+
   .event[data-status="draft"] {
-    background: var(--yellow-soft);
-    color: oklch(39% 0.09 83);
+    background:
+      linear-gradient(90deg, oklch(100% 0 0 / 0.32), oklch(100% 0 0 / 0.32)),
+      var(--event-bg, var(--yellow-soft));
+    color: var(--event-ink, oklch(39% 0.09 83));
   }
 
   .event[data-status="completed"] {

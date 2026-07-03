@@ -7,6 +7,7 @@ import {
   text,
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
+import { businesses, defaultBusiness } from "../lib/businesses";
 
 export const roles = ["ADMIN", "OWNER", "LEAD", "STAFF"] as const;
 export type Role = (typeof roles)[number];
@@ -26,6 +27,9 @@ export const users = sqliteTable(
     avatarUrl: text("avatar_url"),
     avatarStorageKey: text("avatar_storage_key"),
     avatarContentType: text("avatar_content_type"),
+    business: text("business", { enum: businesses })
+      .notNull()
+      .default(defaultBusiness),
     active: integer("active", { mode: "boolean" }).notNull().default(true),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
@@ -34,7 +38,10 @@ export const users = sqliteTable(
       .notNull()
       .$defaultFn(() => new Date()),
   },
-  (table) => [uniqueIndex("users_email_unique").on(table.email)],
+  (table) => [
+    uniqueIndex("users_email_unique").on(table.email),
+    index("users_business_idx").on(table.business),
+  ],
 );
 
 export const inventoryItems = sqliteTable(
@@ -47,6 +54,9 @@ export const inventoryItems = sqliteTable(
     size: text("size"),
     imageUrl: text("image_url"),
     notes: text("notes"),
+    business: text("business", { enum: businesses })
+      .notNull()
+      .default(defaultBusiness),
     active: integer("active", { mode: "boolean" }).notNull().default(true),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
@@ -57,6 +67,7 @@ export const inventoryItems = sqliteTable(
   },
   (table) => [
     index("inventory_category_idx").on(table.category),
+    index("inventory_business_idx").on(table.business),
     index("inventory_active_idx").on(table.active),
   ],
 );
@@ -72,6 +83,9 @@ export const vehicles = sqliteTable(
     color: text("color"),
     notes: text("notes"),
     imageUrl: text("image_url"),
+    business: text("business", { enum: businesses })
+      .notNull()
+      .default(defaultBusiness),
     active: integer("active", { mode: "boolean" }).notNull().default(true),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
@@ -80,7 +94,10 @@ export const vehicles = sqliteTable(
       .notNull()
       .$defaultFn(() => new Date()),
   },
-  (table) => [index("vehicles_active_idx").on(table.active)],
+  (table) => [
+    index("vehicles_business_idx").on(table.business),
+    index("vehicles_active_idx").on(table.active),
+  ],
 );
 
 export const managementInvoices = sqliteTable(
@@ -164,6 +181,9 @@ export const events = sqliteTable(
     venue: text("venue"),
     address: text("address"),
     clientName: text("client_name"),
+    business: text("business", { enum: businesses })
+      .notNull()
+      .default(defaultBusiness),
     status: text("status", { enum: eventStatuses }).notNull().default("DRAFT"),
     callTime: text("call_time"),
     departureTime: text("departure_time"),
@@ -185,6 +205,7 @@ export const events = sqliteTable(
   },
   (table) => [
     index("events_date_idx").on(table.eventDate),
+    index("events_business_idx").on(table.business),
     index("events_status_idx").on(table.status),
   ],
 );
