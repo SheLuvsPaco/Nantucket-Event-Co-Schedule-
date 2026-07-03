@@ -1,4 +1,4 @@
-import { createRequire } from "node:module";
+import PDFParser from "pdf2json";
 import { z } from "zod";
 import type { InventoryRecord } from "@/types";
 
@@ -117,11 +117,6 @@ type Pdf2JsonData = {
     }>;
   }>;
 };
-
-type Pdf2JsonConstructor = new (
-  context?: unknown,
-  needRawText?: boolean,
-) => Pdf2JsonParser;
 
 type SourcePackItem = {
   name: string;
@@ -876,9 +871,7 @@ function aggregatePackItems(
 }
 
 export async function extractPdfText(buffer: Buffer): Promise<ParsedPdfText> {
-  const require = createRequire(`${process.cwd()}/package.json`);
-  const Parser = require("pdf2json") as Pdf2JsonConstructor;
-  const parser = new Parser(null, true);
+  const parser = new PDFParser(null, true) as Pdf2JsonParser;
   const data = await new Promise<Pdf2JsonData>((resolve, reject) => {
     parser.on("pdfParser_dataError", (error) => {
       reject(error instanceof Error ? error : new Error("Unable to parse PDF."));
