@@ -105,6 +105,8 @@ export async function PATCH(request: Request, context: Context) {
           quantity: entry.quantity,
           packed: entry.packed,
           notes: entry.notes,
+          section: entry.section,
+          sortOrder: entry.sortOrder,
         })),
       ),
       staff: sortedJson(
@@ -189,9 +191,18 @@ export async function PATCH(request: Request, context: Context) {
         );
       }
       if (input.inventory.length) {
-        await tx
-          .insert(eventInventory)
-          .values(input.inventory.map((entry) => ({ eventId: id, ...entry })));
+        await tx.insert(eventInventory).values(
+          input.inventory.map((entry, index) => ({
+            id: createId("evi"),
+            eventId: id,
+            inventoryItemId: entry.inventoryItemId,
+            quantity: entry.quantity,
+            packed: entry.packed,
+            notes: entry.notes,
+            section: entry.section,
+            sortOrder: entry.sortOrder ?? index,
+          })),
+        );
       }
       if (input.staff.length) {
         await tx

@@ -75,6 +75,8 @@ export type PreparedQuickAddEvent = {
     label: string;
     details: string | null;
   }>;
+  unresolvedReferences: number;
+  warnings: string[];
 };
 
 function cleanText(value: string | null) {
@@ -313,6 +315,7 @@ export function prepareQuickAddEvents(
   let ignoredReferences = 0;
 
   const events = output.events.flatMap<PreparedQuickAddEvent>((event) => {
+    let eventIgnoredReferences = 0;
     const eventDate = normalizeQuickAddDate(event.eventDate);
     if (!eventDate) {
       skippedDates.push(event.eventDate ?? "missing date");
@@ -335,18 +338,18 @@ export function prepareQuickAddEvents(
       [...event.vehicleIds, ...resolvedVehicles.ids],
       validIds.vehicles,
     );
-    ignoredReferences += event.staffIds.filter(
+    eventIgnoredReferences += event.staffIds.filter(
       (id) => !validIds.staff.has(id),
     ).length;
-    ignoredReferences += event.vehicleIds.filter(
+    eventIgnoredReferences += event.vehicleIds.filter(
       (id) => !validIds.vehicles.has(id),
     ).length;
-    ignoredReferences += resolvedVehicles.unresolved;
+    eventIgnoredReferences += resolvedVehicles.unresolved;
 
     const inventoryById = new Map<string, number>();
     for (const item of event.inventory) {
       if (!item.itemId || !validIds.inventory.has(item.itemId)) {
-        ignoredReferences++;
+        eventIgnoredReferences++;
         continue;
       }
       const quantity =
@@ -420,6 +423,15 @@ export function prepareQuickAddEvents(
       address ||
       cleanText(event.title) ||
       "Location TBD";
+    ignoredReferences += eventIgnoredReferences;
+    const eventWarnings =
+      eventIgnoredReferences > 0
+        ? [
+            `${eventIgnoredReferences} staff, vehicle, or inventory reference${
+              eventIgnoredReferences === 1 ? "" : "s"
+            } could not be matched.`,
+          ]
+        : [];
 
     return [
       {
@@ -438,6 +450,8 @@ export function prepareQuickAddEvents(
           quantity,
         })),
         timeline,
+        unresolvedReferences: eventIgnoredReferences,
+        warnings: eventWarnings,
       },
     ];
   });

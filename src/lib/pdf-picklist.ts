@@ -53,9 +53,9 @@ export type PicklistNewInventoryDraft = {
 export type PicklistPackItemDraft = {
   key: string;
   itemName: string;
+  section: string;
   quantity: number;
   notes: string | null;
-  sectionBreakdown: Array<{ section: string; quantity: number }>;
   inventoryItemId: string | null;
   matchStatus: "matched" | "new";
   matchedInventoryName: string | null;
@@ -186,6 +186,7 @@ export const picklistPublishSchema = z.object({
       z.object({
         key: z.string().trim().min(1),
         itemName: z.string().trim().min(1).max(240),
+        section: z.string().trim().max(160).default(""),
         quantity: z.coerce.number().int().min(1).max(100_000),
         notes: z.string().trim().max(2000).nullable(),
         inventoryItemId: z.string().trim().nullable(),
@@ -332,6 +333,34 @@ function subtractOneHour(time: string | null) {
   ).padStart(2, "0")}`;
 }
 
+function compactPdfDateTime(value: string | null) {
+  const match = value?.match(
+    /(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s+([A-Za-z]{3})\s+(\d{1,2}),\s+\d{4}\s+(\d{1,2}):(\d{2})\s+(AM|PM)/i,
+  );
+  if (!match) return null;
+
+  return {
+    date: `${match[1]} ${Number(match[2])}`,
+    time: `${Number(match[3])}:${match[4]} ${match[5].toUpperCase()}`,
+  };
+}
+
+function formatCompactWindow(
+  label: string,
+  start: string | null,
+  end: string | null,
+) {
+  const compactStart = compactPdfDateTime(start);
+  if (!compactStart) return null;
+
+  const compactEnd = compactPdfDateTime(end);
+  if (!compactEnd) return `${label}: ${compactStart.date}, ${compactStart.time}`;
+
+  return compactStart.date === compactEnd.date
+    ? `${label}: ${compactStart.date}, ${compactStart.time}-${compactEnd.time}`
+    : `${label}: ${compactStart.date}, ${compactStart.time} to ${compactEnd.date}, ${compactEnd.time}`;
+}
+
 function extractDateTimeWindow(text: string, label: string): DateTimeWindow {
   const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const throughPattern = new RegExp(
@@ -438,6 +467,14 @@ function normalizeAddressText(value: string | null) {
   );
 }
 
+function formatSectionName(value: string) {
+  return value
+    .toLocaleLowerCase()
+    .replace(/(^|[\s/])([a-z])/g, (_, prefix: string, letter: string) =>
+      `${prefix}${letter.toLocaleUpperCase()}`,
+    );
+}
+
 function extractWindowFromPositionedLines(
   lines: PositionedLine[],
   labelPattern: RegExp,
@@ -536,6 +573,79 @@ function extractPositionedMetadata(pages: PositionedPdfPage[]) {
     dropOff: extractWindowFromPositionedLines(lines, /^Drop o/i),
     pickup: extractWindowFromPositionedLines(lines, /^Pick Up$/i),
   };
+}
+
+function extractPositionedServices(pages: PositionedPdfPage[]) {
+  const services: string[] = [];
+
+  for (const page of pages) {
+    const lines = sortedPageLines(page);
+    const header = lines.find(
+      (line) =>
+        line.items.some((item) => /^Service$/i.test(item.text)) &&
+        line.items.some((item) => /^Time In$/i.test(item.text)) &&
+        line.items.some((item) => /^Time Out$/i.test(item.text)),
+    );
+    if (!header) continue;
+
+    const footer = lines.find(
+      (line) => line.y < header.y && /^Check Out$/i.test(line.text),
+    );
+    const serviceLines = lines.filter(
+      (line) => line.y < header.y && line.y > (footer?.y ?? -Infinity),
+    );
+    const anchors = serviceLines.filter((line) =>
+      /(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s+[A-Za-z]{3}\s+\d{1,2},\s+\d{4}/i.test(
+        lineTextBetweenX(line, 430, 510) ?? "",
+      ),
+    );
+
+    for (const [index, anchor] of anchors.entries()) {
+      const nextAnchor = anchors[index + 1];
+      const rowLines = serviceLines.filter(
+        (line) =>
+          line.y <= anchor.y + 3 && line.y > (nextAnchor?.y ?? footer?.y ?? -Infinity) + 3,
+      );
+      const rawDescription = cleanText(
+        rowLines
+          .map((line) => lineTextBetweenX(line, 0, 380))
+          .filter(Boolean)
+          .join(" "),
+      );
+      if (!rawDescription) continue;
+      const description = rawDescription
+        .replace(/\s*~\s*/g, ". ")
+        .replace(/\.\s+if\b/g, ". If")
+        .replace(/\bHours\b/g, "hours");
+      const attendantCount = description.match(/(\d+)\s+attendant/i)?.[1] ?? null;
+      const attendantHours = description.match(/for\s+(\d+)\s+hours/i)?.[1] ?? null;
+
+      if (/^On-Site Attendant:/i.test(description)) {
+        const details = [
+          attendantCount ? `${attendantCount} attendant` : null,
+          attendantHours ? `${attendantHours} hours` : null,
+          /time tbd/i.test(description) ? "time TBD" : null,
+        ].filter(Boolean);
+        services.push(`On-site attendant${details.length ? `: ${details.join(", ")}` : ""}`);
+        continue;
+      }
+
+      if (/\btent permit\b/i.test(description)) {
+        const permitNote = description.match(/\(([^)]+)\)/)?.[1] ?? description;
+        services.push(
+          `Permit: ${permitNote.replace(
+            /^Main Tent Permit on June invoice$/i,
+            "Main tent permit on June invoice",
+          )}`,
+        );
+        continue;
+      }
+
+      services.push(description);
+    }
+  }
+
+  return services;
 }
 
 function isSectionHeading(text: string) {
@@ -668,47 +778,25 @@ function extractDeliveryInfo(text: string) {
   return { venue, address };
 }
 
-function formatWindow(label: string, window: DateTimeWindow) {
-  if (!window.start) return null;
-  return window.end
-    ? `${label}: ${window.start} through ${window.end}`
-    : `${label}: ${window.start}`;
-}
-
 function buildNotes({
   text,
-  orderId,
-  orderTitle,
-  deliveryInfo,
   orderStart,
   orderEnd,
-  dropOff,
   pickup,
+  serviceSummaries,
 }: {
   text: string;
-  orderId: string | null;
-  orderTitle: string | null;
-  deliveryInfo: { venue: string | null; address: string | null };
   orderStart: string | null;
   orderEnd: string | null;
-  dropOff: DateTimeWindow;
   pickup: DateTimeWindow;
+  serviceSummaries: string[];
 }) {
   const contactPhone = text.match(/\(\d{3}\)\s*\d{3}-\d{4}/)?.[0] ?? null;
-  const pdfNotes = text.match(/Notes\s+([\s\S]+?)\s+MAIN TENT/i)?.[1] ?? null;
-  const services = text.match(/Service\s+Pricing\s+Time In\s+Time Out\s+([\s\S]+?)\s+Check Out/i)?.[1] ?? null;
   const lines = [
-    orderId ? `PDF order ${orderId}` : null,
-    orderTitle ? `Order: ${orderTitle}` : null,
-    deliveryInfo.venue ? `Location: ${deliveryInfo.venue}` : null,
-    deliveryInfo.address ? `Address: ${deliveryInfo.address}` : null,
-    orderStart && orderEnd ? `Event window: ${orderStart} through ${orderEnd}` : null,
-    formatWindow("Drop off", dropOff),
-    formatWindow("Pickup", pickup),
-    contactPhone ? `Contact phone: ${contactPhone}` : null,
-    pdfNotes ? `PDF notes: ${cleanText(pdfNotes)}` : null,
-    services ? `Services: ${cleanText(services)}` : null,
-    pickup.start ? "Pickup is reference-only from the PDF and was not created as a separate schedule card." : null,
+    formatCompactWindow("Event", orderStart, orderEnd),
+    formatCompactWindow("Pickup", pickup.start, pickup.end),
+    contactPhone ? `Contact: ${contactPhone}` : null,
+    ...serviceSummaries,
   ];
   return lines.filter(Boolean).join("\n");
 }
@@ -798,71 +886,37 @@ export function findPicklistInventoryMatch(
   );
 }
 
-function aggregatePackItems(
+function buildPackItems(
   sourceItems: SourcePackItem[],
   inventory: Array<Pick<InventoryRecord, "id" | "name" | "size" | "category">>,
 ) {
-  const aggregate = new Map<
-    string,
-    {
-      itemName: string;
-      quantity: number;
-      notes: string[];
-      sections: Map<string, number>;
-      match: Pick<InventoryRecord, "id" | "name" | "size" | "category"> | null;
-      sourceNames: Set<string>;
-    }
-  >();
+  const occurrences = new Map<string, number>();
 
-  for (const item of sourceItems) {
+  return sourceItems.map<PicklistPackItemDraft>((item) => {
     const match = findPicklistInventoryMatch(item.name, inventory);
-    const key = match ? `inventory:${match.id}` : `new:${canonicalKey(item.name)}`;
-    const current =
-      aggregate.get(key) ??
-      {
-        itemName: item.name,
-        quantity: 0,
-        notes: [],
-        sections: new Map<string, number>(),
-        match,
-        sourceNames: new Set<string>(),
-      };
-
-    current.quantity += item.quantity;
-    current.sections.set(item.section, (current.sections.get(item.section) ?? 0) + item.quantity);
-    current.sourceNames.add(item.name);
-    if (item.notes.length) current.notes.push(...item.notes);
-    aggregate.set(key, current);
-  }
-
-  return [...aggregate.entries()].map<PicklistPackItemDraft>(([key, item]) => {
-    const sectionBreakdown = [...item.sections].map(([section, quantity]) => ({
-      section,
-      quantity,
-    }));
-    const sourceNames = [...item.sourceNames];
-    const sourceNote =
-      sourceNames.length > 1 ? `PDF names: ${sourceNames.join("; ")}` : null;
-    const sectionNote = `PDF sections: ${sectionBreakdown
-      .map((section) => `${section.section} × ${section.quantity}`)
-      .join("; ")}`;
-    const details = [...new Set([sourceNote, sectionNote, ...item.notes].filter(Boolean))];
-    const size = extractSize(item.itemName);
+    const baseKey = match
+      ? `inventory:${match.id}`
+      : `new:${canonicalKey(item.name)}`;
+    const occurrenceKey = `${baseKey}:section:${canonicalKey(item.section)}`;
+    const occurrence = (occurrences.get(occurrenceKey) ?? 0) + 1;
+    occurrences.set(occurrenceKey, occurrence);
+    const details = [...new Set(item.notes.map((note) => cleanText(note)).filter(Boolean))];
+    const size = extractSize(item.name);
 
     return {
-      key,
-      itemName: item.itemName,
+      key: `${occurrenceKey}:${occurrence}`,
+      itemName: item.name,
+      section: formatSectionName(item.section),
       quantity: item.quantity,
       notes: details.join("\n") || null,
-      sectionBreakdown,
-      inventoryItemId: item.match?.id ?? null,
-      matchStatus: item.match ? "matched" : "new",
-      matchedInventoryName: item.match?.name ?? null,
-      newItem: item.match
+      inventoryItemId: match?.id ?? null,
+      matchStatus: match ? "matched" : "new",
+      matchedInventoryName: match?.name ?? null,
+      newItem: match
         ? null
         : {
-            name: item.itemName,
-            category: inferCategory(item.itemName),
+            name: item.name,
+            category: inferCategory(item.name),
             size,
             quantity: item.quantity,
           },
@@ -941,7 +995,7 @@ export function buildPicklistPreviewFromParsedPdf(
     : fallbackDropOff;
   const pickup = positionedMetadata.pickup.start ? positionedMetadata.pickup : fallbackPickup;
   const { items, sections } = parsePositionedItems(parsed.pages);
-  const packItems = aggregatePackItems(items, inventory);
+  const packItems = buildPackItems(items, inventory);
   const eventDate = dropOff.startDate ?? orderStart.startDate;
   const arrivalTime = dropOff.startTime;
   const callTime = subtractOneHour(arrivalTime);
@@ -968,13 +1022,10 @@ export function buildPicklistPreviewFromParsedPdf(
       returnTime: null,
       notes: buildNotes({
         text,
-        orderId,
-        orderTitle,
-        deliveryInfo,
         orderStart: orderStart.start,
         orderEnd: orderEnd.start,
-        dropOff,
         pickup,
+        serviceSummaries: extractPositionedServices(parsed.pages),
       }),
       staffBrief: `PDF picklist import${orderId ? ` ${orderId}` : ""}. Review crew and vehicles before work starts.`,
       packerUserId: null,
@@ -983,10 +1034,10 @@ export function buildPicklistPreviewFromParsedPdf(
             {
               time: arrivalTime,
               endTime: dropOff.endTime,
-              label: `Arrive at ${title} for PDF picklist drop-off/setup`,
-              details: `Load and deliver the PDF pack list. Drop-off window: ${
+              label: `Arrive at ${title} for setup`,
+              details: `Deliver and set up equipment. Drop-off window: ${
                 dropOff.start ?? "Time TBD"
-              }${dropOff.end ? ` through ${dropOff.end}` : ""}.`,
+              }${dropOff.end ? ` to ${dropOff.end}` : ""}.`,
             },
           ]
         : [],

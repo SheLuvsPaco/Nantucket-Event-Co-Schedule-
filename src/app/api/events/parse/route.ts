@@ -1,7 +1,5 @@
-import { createOpenAI } from "@ai-sdk/openai";
-import { APICallError, generateText, NoOutputGeneratedError, Output } from "ai";
-import { and, eq, gte } from "drizzle-orm";
-import { z } from "zod";
+import { APICallError, NoOutputGeneratedError } from "ai";
+import { and, asc, eq, gte, lte } from "drizzle-orm";
 import { db } from "@/db";
 import {
   eventInventory,
@@ -9,342 +7,219 @@ import {
   eventTimeline,
   eventVehicles,
   events,
-  inventoryItems,
-  users,
-  vehicles,
 } from "@/db/schema";
 import { requireApiSession } from "@/lib/auth";
-import { businesses, businessLabels, defaultBusiness } from "@/lib/businesses";
-import { getTodayKey } from "@/lib/date";
-import { env } from "@/lib/env";
 import { apiError } from "@/lib/http";
 import { createId } from "@/lib/ids";
 import {
-  createStaffAliasMap,
-  createVehicleAliasMap,
-  prepareQuickAddEvents,
-  quickAddOutputSchema,
-} from "@/lib/quick-add";
+  reconcileQuickAddDrafts,
+  type QuickAddEventDraft,
+  type ReconciliationEvent,
+} from "@/lib/quick-add-reconciliation";
+import {
+  parseQuickAddText,
+  quickAddRequestSchema,
+} from "@/lib/quick-add-server";
 
-const requestSchema = z.object({
-  business: z.enum(businesses).default(defaultBusiness),
-  text: z.string().trim().min(1).max(50_000),
-});
+export const runtime = "nodejs";
+
+function shiftDate(dateKey: string, days: number) {
+  const date = new Date(`${dateKey}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+async function insertCreatedEvent({
+  tx,
+  draft,
+  createdBy,
+}: {
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0];
+  draft: QuickAddEventDraft;
+  createdBy: string;
+}) {
+  const eventId = createId("evt");
+
+  await tx.insert(events).values({
+    id: eventId,
+    title: draft.title,
+    eventDate: draft.eventDate,
+    venue: draft.venue,
+    address: draft.address,
+    clientName: draft.clientName,
+    business: draft.business,
+    status: draft.status,
+    callTime: draft.callTime,
+    departureTime: draft.departureTime,
+    returnTime: draft.returnTime,
+    notes: draft.notes,
+    staffBrief: draft.staffBrief,
+    packerUserId: draft.packerUserId,
+    createdBy,
+  });
+
+  if (draft.timeline.length) {
+    await tx.insert(eventTimeline).values(
+      draft.timeline.map((entry, index) => ({
+        id: createId("tml"),
+        eventId,
+        time: entry.time,
+        endTime: entry.endTime,
+        label: entry.label,
+        details: entry.details,
+        sortOrder: index,
+      })),
+    );
+  }
+  if (draft.inventory.length) {
+    await tx.insert(eventInventory).values(
+      draft.inventory.map((entry, index) => ({
+        id: createId("evi"),
+        eventId,
+        ...entry,
+        section: null,
+        sortOrder: index,
+      })),
+    );
+  }
+  if (draft.staff.length) {
+    await tx
+      .insert(eventStaff)
+      .values(draft.staff.map((entry) => ({ eventId, ...entry })));
+  }
+  if (draft.vehicles.length) {
+    await tx
+      .insert(eventVehicles)
+      .values(draft.vehicles.map((entry) => ({ eventId, ...entry })));
+  }
+
+  return eventId;
+}
+
+function parseApiError(error: unknown) {
+  if (APICallError.isInstance(error)) {
+    if (error.statusCode === 401) {
+      return Response.json(
+        { error: "The OpenAI API key was rejected. Check OPENAI_API_KEY." },
+        { status: 502 },
+      );
+    }
+    if (error.statusCode === 429) {
+      return Response.json(
+        {
+          error:
+            "OpenAI rate limit or billing limit reached. Wait briefly or check the API account.",
+        },
+        { status: 429 },
+      );
+    }
+    return Response.json(
+      {
+        error:
+          "OpenAI could not parse this schedule. Please try again in a moment.",
+      },
+      { status: 502 },
+    );
+  }
+
+  if (NoOutputGeneratedError.isInstance(error)) {
+    return Response.json(
+      {
+        error:
+          "The AI did not return usable event data. Add clearer dates and job headings, then try again.",
+      },
+      { status: 422 },
+    );
+  }
+
+  if (error instanceof Error && error.message.includes("OpenAI API key is missing")) {
+    return Response.json({ error: error.message }, { status: 400 });
+  }
+
+  return null;
+}
 
 export async function POST(request: Request) {
   const auth = await requireApiSession(["ADMIN", "OWNER"]);
   if (auth.error) return auth.error;
 
   try {
-    const { business, text } = requestSchema.parse(await request.json());
+    const input = quickAddRequestSchema.parse(await request.json());
+    const parsed = await parseQuickAddText(input);
 
-    if (!env.OPENAI_API_KEY) {
-      return Response.json(
-        {
-          error:
-            "OpenAI API key is missing. Add OPENAI_API_KEY to .env.local and restart the server.",
-        },
-        { status: 400 },
-      );
-    }
-
-    const [dbStaff, dbVehicles, dbInventory] = await Promise.all([
-      db
-        .select({ id: users.id, name: users.name })
-        .from(users)
-        .where(and(eq(users.active, true), eq(users.business, business))),
-      db
-        .select({
-          id: vehicles.id,
-          name: vehicles.name,
-          type: vehicles.type,
-          color: vehicles.color,
-        })
-        .from(vehicles)
-        .where(and(eq(vehicles.active, true), eq(vehicles.business, business))),
-      db
-        .select({
-          id: inventoryItems.id,
-          name: inventoryItems.name,
-          category: inventoryItems.category,
-          size: inventoryItems.size,
-        })
-        .from(inventoryItems)
-        .where(
-          and(eq(inventoryItems.active, true), eq(inventoryItems.business, business)),
-        ),
-    ]);
-
-    const staffList = dbStaff.map((item) => `${item.id}: ${item.name}`).join("\n");
-    const vehicleList = dbVehicles
-      .map((item) => {
-        const aliases = item.name.includes("Stake Body")
-          ? `; aliases include ${item.name.replace("Stake Body", "SB")}`
-          : "";
-        return `${item.id}: ${item.name}${aliases}`;
-      })
-      .join("\n");
-    const inventoryList = dbInventory
-      .map(
-        (item) =>
-          `${item.id}: ${item.name} (${item.category}${
-            item.size ? `, ${item.size}` : ""
-          })`,
-      )
-      .join("\n");
-    const today = getTodayKey(env.COMPANY_TIMEZONE);
-
-    const dbEvents = await db
-      .select({
-        id: events.id,
-        title: events.title,
-        eventDate: events.eventDate,
-        venue: events.venue,
-      })
-      .from(events)
-      .where(and(gte(events.eventDate, today), eq(events.business, business)))
-      .limit(50);
-
-    const eventList = dbEvents
-      .map((e) => `${e.id}: ${e.title} (Date: ${e.eventDate}, Venue: ${e.venue || "None"})`)
-      .join("\n");
-
-    const systemPrompt = `You convert Nantucket Event Co. WhatsApp schedules into extremely clear staff job cards.
-Today is ${today}. Extract every event mentioned and preserve every operational detail.
-
-EXISTING UPCOMING EVENTS:
-${eventList || "No upcoming events found."}
-
-If the user's message is updating or adding details to an existing event from the list above, return its exact ID in the \`eventId\` field. If they are describing a new event, leave \`eventId\` null.
-
-SCHEDULING RULES:
-- The branch for this import is ${businessLabels[business]}. Every created or updated event from this message belongs to ${businessLabels[business]}.
-- A date-level "Warehouse call" applies to EVERY operational event that follows on that date until another warehouse call or date appears. Put that inherited time in callTime. Owner/Porter visits do not inherit warehouse calls.
-- Group tasks into one event when they share the same crew and vehicles. Keep unrelated teams or workstreams separate.
-- The event title is ALWAYS the location where the team must go. For one location, use that location alone, such as "Galley Beach." For multiple stops, use the chronological route, such as "Nancy Ann → 45 Tomahawk → Wauwinet." Never use an action such as "Install floor" as the title and never return a missing title when a location appears in the source.
-- Put every destination in the locations array in chronological order. This array is used to enforce the title even if title is missing.
-- For a time range such as "8AM-12 noon", set time to 08:00 and endTime to 12:00.
-- Timeline labels must stand alone. Preserve quantities, dimensions, origin, destination, and venue in the label: for example, "Sort 50-wide frame tops at Nancy Ann and bring them to 45 Tomahawk," not merely "Sort frame tops."
-- Put materials and execution requirements in timeline details. Never hide critical instructions only in event notes.
-- Copy the relevant original lines into sourceText and produce complete notes as a secondary summary.
-
-STAFF SLANG:
-- "olds" always means the staff member "Old School." Map it to Old School's exact database ID.
-
-VEHICLE RULES:
-- "SB" means "Stake Body." For example, "White SB" is "White Stake Body."
-- Commas, plus signs, and "with" can separate multiple vehicles. "Black stake body, White SB with big tent ox" means three vehicles.
-- Put every raw vehicle phrase in vehicleMentions even when you also map its exact database ID.
-
-PACK-LIST RULES:
-- Map every explicitly named inventory item. If a quantity truly cannot be derived, use 1.
-- Biljax are stage deck sections. Use the inventory size to calculate how many cover the full stage: a 12x24 stage made from 4x4 Biljax needs 18.
-- Stage legs and turf are count-free. Include Stage legs and Turf/Turfs in the pack list when mentioned, but do not calculate or communicate a count. The application stores a hidden placeholder quantity only because the database requires one.
-- Actual floor inventory items—the records whose names contain "floor," such as New white floor, Pine floor, New brown floor, Old brown floor, and Old white floor—are 4x8-foot panels. Do not apply this rule to every item in the Flooring category; Biljax, turf, and stage legs are not floor panels.
-- For a requested finished floor size, calculate the complete panel count. Example: a full 40x40 floor requires 50 panels because 40x40 = 1,600 square feet and each 4x8 panel is 32 square feet. The application verifies this calculation after extraction.
-- Retain all stage dimensions in the timeline label and list turf and legs when the message includes them.
-
-EXAMPLE:
-Input: "Warehouse call 7AM. 8AM-12 noon team Kenroy sort out 50 wide frame tops at Nancy Ann and bring to 45 Tomahawk. 2PM install 12x24 stage at Wauwinet biljax/turf/legs."
-Output behavior: callTime 07:00; first timeline step 08:00-12:00 with the full Nancy Ann-to-45-Tomahawk instruction; second step at 14:00 says "Install 12x24 stage at Wauwinet"; details name Biljax, turf, and legs; pack list contains 18 of the 4x4 Biljax.
-
-If a mentioned person, vehicle, or item has no clear match, omit its ID but preserve the wording in notes, sourceText, or details.
-
-Common venue shorthand: NGC = Nantucket Golf Club; AAN or antiques = Antiques at Bartlett; WMC = Westmoor Club.
-
-Times must be 24-hour HH:mm. Use null for unknown scalar values and empty arrays when a collection has no matches.
-
-STAFF:
-${staffList || "No staff records available."}
-
-VEHICLES:
-${vehicleList || "No vehicle records available."}
-
-INVENTORY:
-${inventoryList || "No inventory records available."}`;
-
-    const openai = createOpenAI({ apiKey: env.OPENAI_API_KEY });
-    const { output } = await generateText({
-      model: openai(env.OPENAI_MODEL),
-      system: systemPrompt,
-      prompt: text,
-      output: Output.object({ schema: quickAddOutputSchema }),
-      maxRetries: 2,
-      timeout: 45_000,
-    });
-
-    const prepared = prepareQuickAddEvents(output, {
-      staff: new Set(dbStaff.map((item) => item.id)),
-      staffAliases: createStaffAliasMap(dbStaff),
-      vehicles: new Set(dbVehicles.map((item) => item.id)),
-      inventory: new Set(dbInventory.map((item) => item.id)),
-      vehicleAliases: createVehicleAliasMap(dbVehicles),
-      inventoryCatalog: new Map(
-        dbInventory.map((item) => [
-          item.id,
-          { name: item.name, size: item.size },
-        ]),
-      ),
-    });
-
-    if (!prepared.events.length) {
+    if (!parsed.drafts.length) {
       return Response.json(
         {
           error:
             "No events with recognizable dates were found. Include a date such as “June 21” and try again.",
-          warnings: prepared.warnings,
+          warnings: parsed.warnings,
         },
         { status: 422 },
       );
     }
 
+    const dates = parsed.drafts.map((draft) => draft.eventDate).sort();
+    const startDate = shiftDate(dates[0], -14);
+    const endDate = shiftDate(dates.at(-1)!, 14);
+    const existingEvents = (await db.query.events.findMany({
+      where: and(
+        eq(events.business, parsed.business),
+        gte(events.eventDate, startDate),
+        lte(events.eventDate, endDate),
+      ),
+      orderBy: [asc(events.eventDate), asc(events.callTime), asc(events.title)],
+      with: {
+        timeline: true,
+        inventory: true,
+        staff: true,
+        vehicles: true,
+      },
+    })) as ReconciliationEvent[];
+
+    const rows = reconcileQuickAddDrafts({
+      drafts: parsed.drafts,
+      existingEvents,
+      warningsByRow: parsed.warningsByRow,
+    });
+    const needsReview = rows.filter((row) => row.status === "needs_review");
+    if (needsReview.length) {
+      return Response.json(
+        {
+          error:
+            "Some jobs need review before saving. Open Quick Add again to review the changes.",
+          rows,
+          warnings: parsed.warnings,
+        },
+        { status: 409 },
+      );
+    }
+
+    const createRows = rows.filter((row) => row.status === "create");
     const createdIds: string[] = [];
-    const updatedIds: string[] = [];
 
     await db.transaction(async (tx) => {
-      for (const event of prepared.events) {
-        let currentEventId = event.eventId;
-
-        if (currentEventId) {
-          // Update existing event
-          await tx
-            .update(events)
-            .set({
-              title: event.title,
-              eventDate: event.eventDate,
-              venue: event.venue,
-              address: event.address,
-              business,
-              callTime: event.callTime,
-              notes: event.notes,
-            })
-            .where(eq(events.id, currentEventId));
-
-          // Clear out existing relations to replace them
-          await tx.delete(eventTimeline).where(eq(eventTimeline.eventId, currentEventId));
-          await tx.delete(eventStaff).where(eq(eventStaff.eventId, currentEventId));
-          await tx.delete(eventVehicles).where(eq(eventVehicles.eventId, currentEventId));
-          await tx.delete(eventInventory).where(eq(eventInventory.eventId, currentEventId));
-
-          updatedIds.push(currentEventId);
-        } else {
-          // Create new event
-          currentEventId = createId("evt");
-          await tx.insert(events).values({
-            id: currentEventId,
-            title: event.title,
-            eventDate: event.eventDate,
-            venue: event.venue,
-            address: event.address,
-            clientName: null,
-            business,
-            status: "CONFIRMED",
-            callTime: event.callTime,
-            departureTime: null,
-            returnTime: null,
-            notes: event.notes,
-            staffBrief: null,
+      for (const row of createRows) {
+        createdIds.push(
+          await insertCreatedEvent({
+            tx,
+            draft: row.draft,
             createdBy: auth.session.id,
-          });
-          createdIds.push(currentEventId);
-        }
-
-        if (event.timeline.length) {
-          await tx.insert(eventTimeline).values(
-            event.timeline.map((entry, index) => ({
-              id: createId("tml"),
-              eventId: currentEventId as string,
-              time: entry.time,
-              endTime: entry.endTime,
-              label: entry.label,
-              details: entry.details,
-              sortOrder: index,
-            })),
-          );
-        }
-
-        if (event.staffIds.length) {
-          await tx.insert(eventStaff).values(
-            event.staffIds.map((userId) => ({
-              eventId: currentEventId as string,
-              userId,
-              assignment: null,
-              callTime: event.callTime,
-              notes: null,
-            })),
-          );
-        }
-
-        if (event.vehicleIds.length) {
-          await tx.insert(eventVehicles).values(
-            event.vehicleIds.map((vehicleId) => ({
-              eventId: currentEventId as string,
-              vehicleId,
-              driverUserId: null,
-              destination: event.address ?? event.venue,
-              departureTime: null,
-              notes: null,
-            })),
-          );
-        }
-
-        if (event.inventory.length) {
-          await tx.insert(eventInventory).values(
-            event.inventory.map((item) => ({
-              eventId: currentEventId as string,
-              inventoryItemId: item.itemId,
-              quantity: item.quantity,
-              packed: false,
-              notes: null,
-            })),
-          );
-        }
+          }),
+        );
       }
     });
 
     return Response.json({
       createdCount: createdIds.length,
-      updatedCount: updatedIds.length,
-      warnings: prepared.warnings,
+      updatedCount: 0,
+      skippedCount: rows.filter((row) => row.status === "skip").length,
+      createdIds,
+      warnings: parsed.warnings,
     });
   } catch (error) {
     console.error("Quick Add parse error:", error);
-
-    if (APICallError.isInstance(error)) {
-      if (error.statusCode === 401) {
-        return Response.json(
-          { error: "The OpenAI API key was rejected. Check OPENAI_API_KEY." },
-          { status: 502 },
-        );
-      }
-      if (error.statusCode === 429) {
-        return Response.json(
-          {
-            error:
-              "OpenAI rate limit or billing limit reached. Wait briefly or check the API account.",
-          },
-          { status: 429 },
-        );
-      }
-      return Response.json(
-        {
-          error:
-            "OpenAI could not parse this schedule. Please try again in a moment.",
-        },
-        { status: 502 },
-      );
-    }
-
-    if (NoOutputGeneratedError.isInstance(error)) {
-      return Response.json(
-        {
-          error:
-            "The AI did not return usable event data. Add clearer dates and job headings, then try again.",
-        },
-        { status: 422 },
-      );
-    }
-
+    const aiError = parseApiError(error);
+    if (aiError) return aiError;
     return apiError(error);
   }
 }

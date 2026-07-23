@@ -65,12 +65,18 @@ export async function POST(request: Request) {
 
     await db.transaction(async (tx) => {
       const availableInventory: InventoryRecord[] = [...dbInventory];
-      const resolvedPackItems = new Map<
-        string,
-        { quantity: number; notes: string[] }
-      >();
+      const resolvedPackItems: Array<{
+        id: string;
+        eventId: string;
+        inventoryItemId: string;
+        quantity: number;
+        packed: boolean;
+        notes: string | null;
+        section: string | null;
+        sortOrder: number;
+      }> = [];
 
-      for (const packItem of input.packItems) {
+      for (const [sortOrder, packItem] of input.packItems.entries()) {
         let inventoryItemId =
           packItem.inventoryItemId &&
           availableInventory.some((item) => item.id === packItem.inventoryItemId)
@@ -114,13 +120,16 @@ export async function POST(request: Request) {
           }
         }
 
-        const current = resolvedPackItems.get(inventoryItemId) ?? {
-          quantity: 0,
-          notes: [],
-        };
-        current.quantity += packItem.quantity;
-        if (packItem.notes) current.notes.push(packItem.notes);
-        resolvedPackItems.set(inventoryItemId, current);
+        resolvedPackItems.push({
+          id: createId("evi"),
+          eventId,
+          inventoryItemId,
+          quantity: packItem.quantity,
+          packed: false,
+          notes: cleanNullable(packItem.notes),
+          section: cleanNullable(packItem.section),
+          sortOrder,
+        });
       }
 
       await tx.insert(events).values({
@@ -197,16 +206,8 @@ export async function POST(request: Request) {
         );
       }
 
-      if (resolvedPackItems.size) {
-        await tx.insert(eventInventory).values(
-          [...resolvedPackItems].map(([inventoryItemId, item]) => ({
-            eventId,
-            inventoryItemId,
-            quantity: item.quantity,
-            packed: false,
-            notes: [...new Set(item.notes)].join("\n\n") || null,
-          })),
-        );
+      if (resolvedPackItems.length) {
+        await tx.insert(eventInventory).values(resolvedPackItems);
       }
     });
 

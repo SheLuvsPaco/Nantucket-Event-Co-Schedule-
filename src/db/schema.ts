@@ -8,6 +8,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 import { businesses, defaultBusiness } from "../lib/businesses";
+import { createId } from "../lib/ids";
 
 export const roles = ["ADMIN", "OWNER", "LEAD", "STAFF"] as const;
 export type Role = (typeof roles)[number];
@@ -229,6 +230,9 @@ export const eventTimeline = sqliteTable(
 export const eventInventory = sqliteTable(
   "event_inventory",
   {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId("evi")),
     eventId: text("event_id")
       .notNull()
       .references(() => events.id, { onDelete: "cascade" }),
@@ -238,11 +242,10 @@ export const eventInventory = sqliteTable(
     quantity: integer("quantity").notNull().default(1),
     packed: integer("packed", { mode: "boolean" }).notNull().default(false),
     notes: text("notes"),
+    section: text("section"),
+    sortOrder: integer("sort_order").notNull().default(0),
   },
-  (table) => [
-    primaryKey({ columns: [table.eventId, table.inventoryItemId] }),
-    index("event_inventory_event_idx").on(table.eventId),
-  ],
+  (table) => [index("event_inventory_event_idx").on(table.eventId)],
 );
 
 export const eventStaff = sqliteTable(

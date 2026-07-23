@@ -18,6 +18,7 @@ import type {
   PicklistPackItemDraft,
   PicklistPreview,
 } from "@/lib/pdf-picklist";
+import { getUnassignedCrew, isCrewRole } from "@/lib/roles";
 import type { InventoryRecord, UserRecord, VehicleRecord } from "@/types";
 import styles from "./pdf-import-trigger.module.css";
 
@@ -87,10 +88,12 @@ export function PdfImportTrigger() {
   const crew = useMemo(
     () =>
       (previewPayload?.catalog.people ?? []).filter((person) =>
-        ["STAFF", "LEAD"].includes(person.role),
+        isCrewRole(person.role),
       ),
     [previewPayload],
   );
+  const unassignedCrew = getUnassignedCrew(crew, draft?.staff ?? []);
+  const allCrewAssigned = crew.length > 0 && unassignedCrew.length === 0;
 
   function reset() {
     setFile(null);
@@ -190,6 +193,22 @@ export function PdfImportTrigger() {
               notes: null,
             },
           ],
+    });
+  }
+
+  function assignAllCrew() {
+    if (!draft || !unassignedCrew.length) return;
+    setDraft({
+      ...draft,
+      staff: [
+        ...draft.staff,
+        ...unassignedCrew.map((person) => ({
+          userId: person.id,
+          assignment: null,
+          callTime: draft.callTime,
+          notes: null,
+        })),
+      ],
     });
   }
 
@@ -417,12 +436,30 @@ export function PdfImportTrigger() {
                 </section>
 
                 <section className={styles.panel}>
-                  <div className={styles.panelTitle}>
-                    <UsersRound aria-hidden="true" />
-                    <div>
-                      <p>No crew in PDF</p>
-                      <h3>Assign crew</h3>
+                  <div className={styles.panelHeading}>
+                    <div className={styles.panelTitle}>
+                      <UsersRound aria-hidden="true" />
+                      <div>
+                        <p>No crew in PDF</p>
+                        <h3>Assign crew</h3>
+                      </div>
                     </div>
+                    <button
+                      aria-label={
+                        allCrewAssigned ? "All crew assigned" : "Assign all crew"
+                      }
+                      className={`button button-secondary ${styles.bulkCrewButton}`}
+                      disabled={!crew.length || allCrewAssigned}
+                      onClick={assignAllCrew}
+                      type="button"
+                    >
+                      {allCrewAssigned ? (
+                        <Check aria-hidden="true" />
+                      ) : (
+                        <UsersRound aria-hidden="true" />
+                      )}
+                      {allCrewAssigned ? "All crew added" : "All crew"}
+                    </button>
                   </div>
                   <div className={styles.choiceGrid}>
                     {crew.map((person) => {
@@ -476,7 +513,7 @@ export function PdfImportTrigger() {
                   <div className={styles.panelTitle}>
                     <Box aria-hidden="true" />
                     <div>
-                      <p>PDF sections preserved</p>
+                      <p>Setup areas</p>
                       <h3>Pack list</h3>
                     </div>
                   </div>
@@ -484,7 +521,10 @@ export function PdfImportTrigger() {
                     {packItems.map((item, index) => (
                       <div className={styles.packRow} key={item.key}>
                         <div className={styles.packTop}>
-                          <strong>{item.itemName}</strong>
+                          <div className={styles.packIdentity}>
+                            <span className={styles.packSection}>{item.section}</span>
+                            <strong>{item.itemName}</strong>
+                          </div>
                           <span data-status={item.matchStatus}>
                             {item.matchStatus === "matched"
                               ? `Matched: ${item.matchedInventoryName}`

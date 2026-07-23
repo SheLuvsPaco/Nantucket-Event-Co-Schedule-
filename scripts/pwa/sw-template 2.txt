@@ -1,0 +1,110 @@
+const VERSION = "__PWA_VERSION__";
+const CACHE_PREFIX = "nantucket-events-pwa";
+const SHELL_CACHE = `${CACHE_PREFIX}-shell-${VERSION}`;
+const ASSET_CACHE = `${CACHE_PREFIX}-assets-${VERSION}`;
+const MAX_ASSET_ENTRIES = 160;
+const OFFLINE_URL = "/offline.html";
+const PRECACHE_URLS = [
+  OFFLINE_URL,
+  "/manifest.webmanifest",
+  "/nantucket-event-co-logo.svg",
+  "/icons/icon-192x192.png",
+  "/icons/icon-512x512.png",
+  "/icons/icon-maskable-512x512.png",
+  "/icons/apple-touch-icon.png",
+];
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches
+      .open(SHELL_CACHE)
+      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .then(() => self.skipWaiting()),
+  );
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((names) =>
+        Promise.all(
+          names
+            .filter(
+              (name) =>
+                name.startsWith(CACHE_PREFIX) &&
+                name !== SHELL_CACHE &&
+                name !== ASSET_CACHE,
+            )
+            .map((name) => caches.delete(name)),
+        ),
+      )
+      .then(() => self.clients.claim()),
+  );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") {
+    void self.skipWaiting();
+  }
+});
+
+function isCacheableAsset(url) {
+  return (
+    url.pathname.startsWith("/_next/static/") ||
+    url.pathname.startsWith("/_next/image") ||
+    url.pathname.startsWith("/images/") ||
+    url.pathname.startsWith("/icons/") ||
+    url.pathname === "/nantucket-event-co-logo.svg" ||
+    url.pathname === "/favicon.ico"
+  );
+}
+
+async function trimCache(cache) {
+  const keys = await cache.keys();
+  const overflow = keys.length - MAX_ASSET_ENTRIES;
+  if (overflow <= 0) return;
+  await Promise.all(keys.slice(0, overflow).map((request) => cache.delete(request)));
+}
+
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(ASSET_CACHE);
+  const cached = await cache.match(request);
+  const network = fetch(request)
+    .then(async (response) => {
+      if (response.ok && response.type === "basic") {
+        await cache.put(request, response.clone());
+        await trimCache(cache);
+      }
+      return response;
+    })
+    .catch((error) => {
+      if (cached) return cached;
+      throw error;
+    });
+
+  return cached ?? network;
+}
+
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
+  if (request.method !== "GET") return;
+
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request).catch(async () => {
+        const cache = await caches.open(SHELL_CACHE);
+        return cache.match(OFFLINE_URL);
+      }),
+    );
+    return;
+  }
+
+  if (url.pathname.startsWith("/api/")) return;
+  if (!isCacheableAsset(url)) return;
+
+  event.respondWith(staleWhileRevalidate(request));
+});

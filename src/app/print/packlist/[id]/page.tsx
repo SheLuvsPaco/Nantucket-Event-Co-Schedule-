@@ -2,7 +2,10 @@ import { notFound } from "next/navigation";
 import { getEventById } from "@/lib/data";
 import { formatLongDate, formatTime } from "@/lib/date";
 import { requireSession } from "@/lib/auth";
-import { isCountFreePackItem } from "@/lib/pack-list";
+import {
+  groupPackItemsBySection,
+  isCountFreePackItem,
+} from "@/lib/pack-list";
 import { AutoPrint } from "./auto-print";
 import styles from "../../packlist.module.css";
 
@@ -21,13 +24,20 @@ export default async function PrintPacklistPage({
 
   if (!event) return notFound();
 
-  // Group inventory items by category
-  const groupedInventory = event.inventory.reduce((acc, entry) => {
-    const category = entry.item?.category || "Uncategorized";
-    if (!acc[category]) acc[category] = [];
-    acc[category].push(entry);
-    return acc;
-  }, {} as Record<string, typeof event.inventory>);
+  const packLayout = groupPackItemsBySection(event.inventory);
+  const printGroups = packLayout.sectioned
+    ? packLayout.groups.map((group) => ({
+        title: group.section ?? "Other items",
+        items: group.items,
+      }))
+    : Object.entries(
+        event.inventory.reduce((groups, entry) => {
+          const category = entry.item?.category || "Uncategorized";
+          if (!groups[category]) groups[category] = [];
+          groups[category].push(entry);
+          return groups;
+        }, {} as Record<string, typeof event.inventory>),
+      ).map(([title, items]) => ({ title, items }));
 
   const vehiclesText = event.vehicles.length
     ? event.vehicles.map(v => v.vehicle?.name).filter(Boolean).join(", ")
@@ -70,9 +80,9 @@ export default async function PrintPacklistPage({
       </header>
 
       <main className={styles.mainContent}>
-        {Object.entries(groupedInventory).map(([category, items]) => (
-          <section key={category} className={styles.categorySection}>
-            <h2 className={styles.categoryTitle}>{category}</h2>
+        {printGroups.map(({ title, items }) => (
+          <section key={title} className={styles.categorySection}>
+            <h2 className={styles.categoryTitle}>{title}</h2>
             <table className={styles.packTable}>
               <thead>
                 <tr>
@@ -84,7 +94,7 @@ export default async function PrintPacklistPage({
               </thead>
               <tbody>
                 {items.map((entry) => (
-                  <tr key={entry.inventoryItemId} className={styles.itemRow}>
+                  <tr key={entry.id} className={styles.itemRow}>
                     <td className={styles.colCheck}>
                       <div className={styles.checkboxOutline}></div>
                     </td>

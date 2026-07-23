@@ -91,7 +91,16 @@ export async function POST(request: Request) {
       }
       if (input.inventory.length) {
         await tx.insert(eventInventory).values(
-          input.inventory.map((entry) => ({ eventId, ...entry })),
+          input.inventory.map((entry, index) => ({
+            id: createId("evi"),
+            eventId,
+            inventoryItemId: entry.inventoryItemId,
+            quantity: entry.quantity,
+            packed: entry.packed,
+            notes: entry.notes,
+            section: null,
+            sortOrder: index,
+          })),
         );
       }
       if (input.staff.length) {

@@ -1,0 +1,1374 @@
+{
+  "model": "gpt-4o",
+  "today": "2026-06-18",
+  "results": [
+    {
+      "id": "boss-slang-single-day#1",
+      "name": "Boss slang single-day extraction — run 1",
+      "durationMs": 8884,
+      "draftCount": 2,
+      "rows": [
+        {
+          "status": "create",
+          "recommendedAction": "create",
+          "title": "Galley Beach",
+          "eventDate": "2026-06-19",
+          "reason": "No plausible existing job found.",
+          "differences": [],
+          "warnings": [],
+          "draftNotes": "Install full new white floor size 40x40 in the seasonal tent at Galley Beach. Vehicles: Black Stake Body, White Stake Body, Big Tent Ox. Crew: Zach, Fuerte, Jay, Gabe, Courtney, Reid, Old School.",
+          "matchedNotes": null,
+          "timeline": [
+            "07:15 Depart for Galley Beach",
+            "07:30-10:30 Install full new white floor size 40x40 at Galley Beach"
+          ],
+          "timelineDetails": [
+            "",
+            "In 40x40 seasonal tent"
+          ],
+          "staff": [
+            "usr_zach",
+            "usr_fuerte",
+            "usr_jay",
+            "usr_gabe",
+            "usr_courtney",
+            "usr_reid",
+            "usr_old_school"
+          ],
+          "vehicles": [
+            "veh_black_stake_body",
+            "veh_white_stake_body",
+            "veh_big_tent_ox"
+          ],
+          "inventory": [
+            "inv_new_white_floor x50"
+          ]
+        },
+        {
+          "status": "create",
+          "recommendedAction": "create",
+          "title": "Nancy Ann → 45 Tomahawk → Wauwinet",
+          "eventDate": "2026-06-19",
+          "reason": "No plausible existing job found.",
+          "differences": [],
+          "warnings": [],
+          "draftNotes": "Sort 50 wide frame tops at Nancy Ann and bring them to 45 Tomahawk. Install a 12x24 stage at Wauwinet using Biljax, turf, and stage legs. Vehicles: Black Stake Body, Big Tent Ox, Transit Van 1. Crew: Kenroy, Colin, Simone, Goran, Fuerte, Stivan, Younes, Sardine.",
+          "matchedNotes": null,
+          "timeline": [
+            "08:00-12:00 Sort 50 wide frame tops at Nancy Ann and bring them to 45 Tomahawk",
+            "14:00 Install 12x24 stage at Wauwinet"
+          ],
+          "timelineDetails": [
+            "",
+            "Use Biljax, turf, and stage legs"
+          ],
+          "staff": [
+            "usr_kenroy",
+            "usr_colin",
+            "usr_simone",
+            "usr_goran",
+            "usr_fuerte",
+            "usr_stivan",
+            "usr_younes",
+            "usr_sardine"
+          ],
+          "vehicles": [
+            "veh_black_stake_body",
+            "veh_big_tent_ox",
+            "veh_transit_van_1"
+          ],
+          "inventory": [
+            "inv_frame_tops_50 x1",
+            "inv_biljax x18",
+            "inv_turfs x1",
+            "inv_stage_legs x1"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "label": "extracts exactly 2 job cards",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "Galley title is location-based",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "Galley keeps White SB as White Stake Body",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "Galley includes Old School from olds slang",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "40x40 floor becomes 50 floor panels",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "Stage route includes Wauwinet",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "12x24 stage becomes 18 Biljax",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "Turfs stay count-free placeholder",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "reconciliation has 2 create row(s)",
+          "passed": true,
+          "detail": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "identical-repost-skip#1",
+      "name": "Identical repost should skip — run 1",
+      "durationMs": 2835,
+      "draftCount": 1,
+      "rows": [
+        {
+          "status": "skip",
+          "recommendedAction": "skip",
+          "title": "Sconset Casino",
+          "eventDate": "2026-06-23",
+          "reason": "Already exists (same date, same location/title, same warehouse call, same first job time, similar timeline).",
+          "differences": [],
+          "warnings": [],
+          "draftNotes": "Install a 20x20 Chef Tent at Sconset Casino. Crew: Zach and Fuerte. Black Stake Body used.",
+          "matchedNotes": "Install 20x20 Chef Tent at Sconset Casino.",
+          "timeline": [
+            "08:00-10:00 Install 20x20 Chef Tent at Sconset Casino"
+          ],
+          "timelineDetails": [
+            ""
+          ],
+          "staff": [
+            "usr_zach",
+            "usr_fuerte"
+          ],
+          "vehicles": [
+            "veh_black_stake_body"
+          ],
+          "inventory": [
+            "inv_chef_tent_20 x1"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "label": "extracts one Sconset job",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "reconciliation has 1 skip row(s)",
+          "passed": true,
+          "detail": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "changed-existing-review#1",
+      "name": "Changed existing job should require review — run 1",
+      "durationMs": 2350,
+      "draftCount": 1,
+      "rows": [
+        {
+          "status": "needs_review",
+          "recommendedAction": "update",
+          "title": "Sconset Casino",
+          "eventDate": "2026-06-23",
+          "reason": "Looks like an existing job, but the job card changed (same date, same location/title, same warehouse call, same first job time, similar timeline).",
+          "differences": [
+            "Crew changed.",
+            "Vehicles changed.",
+            "Notes changed."
+          ],
+          "warnings": [],
+          "draftNotes": "Install a 20x20 Chef Tent at Sconset Casino using Black Stake Body and White Stake Body. Team includes Zach, Fuerte, and Jay.",
+          "matchedNotes": "Install 20x20 Chef Tent at Sconset Casino.",
+          "timeline": [
+            "08:00-10:00 Install 20x20 Chef Tent at Sconset Casino"
+          ],
+          "timelineDetails": [
+            ""
+          ],
+          "staff": [
+            "usr_zach",
+            "usr_fuerte",
+            "usr_jay"
+          ],
+          "vehicles": [
+            "veh_black_stake_body",
+            "veh_white_stake_body"
+          ],
+          "inventory": [
+            "inv_chef_tent_20 x1"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "label": "reconciliation has 1 needs_review row(s)",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "recommended action is update",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "review mentions crew or vehicle change",
+          "passed": true,
+          "detail": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "moved-date-review#1",
+      "name": "Moved job should require review — run 1",
+      "durationMs": 1794,
+      "draftCount": 1,
+      "rows": [
+        {
+          "status": "needs_review",
+          "recommendedAction": "update",
+          "title": "Sconset Casino",
+          "eventDate": "2026-06-24",
+          "reason": "This looks like an existing job that may have moved to a different date.",
+          "differences": [
+            "Date changes from 2026-06-23 to 2026-06-24.",
+            "Notes changed."
+          ],
+          "warnings": [
+            "Moved jobs require review before replacing the old card."
+          ],
+          "draftNotes": "Install a 20x20 Chef Tent at Sconset Casino. Crew includes Zach and Fuerte using Black stake body.",
+          "matchedNotes": "Install 20x20 Chef Tent at Sconset Casino.",
+          "timeline": [
+            "08:00-10:00 Install 20x20 Chef Tent at Sconset Casino"
+          ],
+          "timelineDetails": [
+            ""
+          ],
+          "staff": [
+            "usr_zach",
+            "usr_fuerte"
+          ],
+          "vehicles": [
+            "veh_black_stake_body"
+          ],
+          "inventory": [
+            "inv_chef_tent_20 x1"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "label": "reconciliation has 1 needs_review row(s)",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "review reason detects move",
+          "passed": true,
+          "detail": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "ambiguous-candidates-review#1",
+      "name": "Ambiguous duplicate candidates require review — run 1",
+      "durationMs": 2073,
+      "draftCount": 1,
+      "rows": [
+        {
+          "status": "needs_review",
+          "recommendedAction": "skip",
+          "title": "Galley Beach",
+          "eventDate": "2026-06-26",
+          "reason": "Multiple existing jobs look like possible matches.",
+          "differences": [
+            "Crew changed.",
+            "Vehicles changed.",
+            "Notes changed."
+          ],
+          "warnings": [
+            "Choose whether this is an update or a separate job."
+          ],
+          "draftNotes": "Install floor at Galley Beach. Use Black stake body. Crew: Zach, Fuerte.",
+          "matchedNotes": null,
+          "timeline": [
+            "08:00 Install floor at Galley Beach"
+          ],
+          "timelineDetails": [
+            ""
+          ],
+          "staff": [
+            "usr_zach",
+            "usr_fuerte"
+          ],
+          "vehicles": [
+            "veh_black_stake_body"
+          ],
+          "inventory": []
+        }
+      ],
+      "checks": [
+        {
+          "label": "reconciliation has 1 needs_review row(s)",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "multiple candidates returned",
+          "passed": true,
+          "detail": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "unknown-reference-review#1",
+      "name": "Unknown staff/vehicle reference should force review — run 1",
+      "durationMs": 2091,
+      "draftCount": 1,
+      "rows": [
+        {
+          "status": "needs_review",
+          "recommendedAction": "create",
+          "title": "Westmoor Club",
+          "eventDate": "2026-06-27",
+          "reason": "Some staff, vehicle, or inventory references need a human check.",
+          "differences": [],
+          "warnings": [
+            "1 staff, vehicle, or inventory reference could not be matched."
+          ],
+          "draftNotes": "Install a 30x30 chef tent at Westmoor Club using the Purple monster truck and black stake body. Crew includes Bobby and Zach.",
+          "matchedNotes": null,
+          "timeline": [
+            "07:00 Install 30x30 chef tent at Westmoor Club"
+          ],
+          "timelineDetails": [
+            "Use the Purple monster truck and Black Stake Body. Crew: Bobby and Zach."
+          ],
+          "staff": [
+            "usr_zach"
+          ],
+          "vehicles": [
+            "veh_black_stake_body"
+          ],
+          "inventory": [
+            "inv_chef_tent_30 x1"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "label": "reconciliation has 1 needs_review row(s)",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "unmatched reference warning surfaced",
+          "passed": true,
+          "detail": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "month-bulk-stress#1",
+      "name": "Month-like bulk paste stress — run 1",
+      "durationMs": 12093,
+      "draftCount": 9,
+      "rows": [
+        {
+          "status": "create",
+          "recommendedAction": "create",
+          "title": "NGC",
+          "eventDate": "2026-06-28",
+          "reason": "No plausible existing job found.",
+          "differences": [],
+          "warnings": [],
+          "draftNotes": "Install 20x20 Chef Tent with cafe lights and clear sides at NGC. Use Black Stake Body and Transit Van. Crew: Zach, Fuerte, Jay.",
+          "matchedNotes": null,
+          "timeline": [
+            "08:00 Install 20x20 Chef Tent with cafe lights and clear sides at NGC"
+          ],
+          "timelineDetails": [
+            ""
+          ],
+          "staff": [
+            "usr_zach",
+            "usr_fuerte",
+            "usr_jay"
+          ],
+          "vehicles": [
+            "veh_black_stake_body",
+            "veh_transit_van_1"
+          ],
+          "inventory": [
+            "inv_chef_tent_20 x1",
+            "inv_cafe_lighting x1",
+            "inv_clear_sides_20 x1"
+          ]
+        },
+        {
+          "status": "create",
+          "recommendedAction": "create",
+          "title": "WMC",
+          "eventDate": "2026-06-29",
+          "reason": "No plausible existing job found.",
+          "differences": [],
+          "warnings": [],
+          "draftNotes": "Breakdown 30x30 Chef Tent at WMC. Use White Stake Body and Box Truck. Crew: Gabe, Courtney, Reid, Old School.",
+          "matchedNotes": null,
+          "timeline": [
+            "07:00 Breakdown 30x30 Chef Tent at WMC"
+          ],
+          "timelineDetails": [
+            ""
+          ],
+          "staff": [
+            "usr_gabe",
+            "usr_courtney",
+            "usr_reid",
+            "usr_old_school"
+          ],
+          "vehicles": [
+            "veh_white_stake_body",
+            "veh_box_truck"
+          ],
+          "inventory": [
+            "inv_chef_tent_30 x1"
+          ]
+        },
+        {
+          "status": "create",
+          "recommendedAction": "create",
+          "title": "Antiques",
+          "eventDate": "2026-06-30",
+          "reason": "No plausible existing job found.",
+          "differences": [],
+          "warnings": [],
+          "draftNotes": "Install new brown floor in 32x40 tent at Antiques. Use Black Stake Body and Big Tent Ox. Crew: Kenroy, Colin, Simone.",
+          "matchedNotes": null,
+          "timeline": [
+            "07:30-11:30 Install new brown floor in 32x40 tent at Antiques"
+          ],
+          "timelineDetails": [
+            ""
+          ],
+          "staff": [
+            "usr_kenroy",
+            "usr_colin",
+            "usr_simone"
+          ],
+          "vehicles": [
+            "veh_black_stake_body",
+            "veh_big_tent_ox"
+          ],
+          "inventory": [
+            "inv_new_brown_floor x40"
+          ]
+        },
+        {
+          "status": "create",
+          "recommendedAction": "create",
+          "title": "Warehouse → Nancy Ann",
+          "eventDate": "2026-07-01",
+          "reason": "No plausible existing job found.",
+          "differences": [],
+          "warnings": [],
+          "draftNotes": "Drop 50 wide frame tops from warehouse to Nancy Ann and bring old sides back. Use Transit Van. Crew: Goran, Stivan, Younes.",
+          "matchedNotes": null,
+          "timeline": [
+            "09:00 Drop 50 wide frame tops from warehouse to Nancy Ann and bring old sides back"
+          ],
+          "timelineDetails": [
+            ""
+          ],
+          "staff": [
+            "usr_goran",
+            "usr_stivan",
+            "usr_younes"
+          ],
+          "vehicles": [
+            "veh_transit_van_1"
+          ],
+          "inventory": [
+            "inv_frame_tops_50 x1"
+          ]
+        },
+        {
+          "status": "create",
+          "recommendedAction": "create",
+          "title": "Wauwinet",
+          "eventDate": "2026-07-02",
+          "reason": "No plausible existing job found.",
+          "differences": [],
+          "warnings": [],
+          "draftNotes": "Install 12x24 stage at Wauwinet with Biljax, turf, and legs. Use Black Stake Body and Big Tent Ox. Crew: Paco, Fuerte, Sardine.",
+          "matchedNotes": null,
+          "timeline": [
+            "07:00 Install 12x24 stage at Wauwinet"
+          ],
+          "timelineDetails": [
+            "Biljax, turf, and legs"
+          ],
+          "staff": [
+            "usr_paco",
+            "usr_fuerte",
+            "usr_sardine"
+          ],
+          "vehicles": [
+            "veh_black_stake_body",
+            "veh_big_tent_ox"
+          ],
+          "inventory": [
+            "inv_biljax x18",
+            "inv_turfs x1",
+            "inv_stage_legs x1"
+          ]
+        },
+        {
+          "status": "create",
+          "recommendedAction": "create",
+          "title": "Sconset Casino",
+          "eventDate": "2026-07-03",
+          "reason": "No plausible existing job found.",
+          "differences": [],
+          "warnings": [],
+          "draftNotes": "Install clear sides and café lighting at Sconset Casino. Use White Stake Body. Crew: Zach, Gabe.",
+          "matchedNotes": null,
+          "timeline": [
+            "08:00 Install clear sides and café lighting at Sconset Casino"
+          ],
+          "timelineDetails": [
+            ""
+          ],
+          "staff": [
+            "usr_zach",
+            "usr_gabe"
+          ],
+          "vehicles": [
+            "veh_white_stake_body"
+          ],
+          "inventory": [
+            "inv_clear_sides_20 x1",
+            "inv_cafe_lighting x1"
+          ]
+        },
+        {
+          "status": "create",
+          "recommendedAction": "create",
+          "title": "WMC",
+          "eventDate": "2026-07-04",
+          "reason": "No plausible existing job found.",
+          "differences": [],
+          "warnings": [],
+          "draftNotes": "Standby for event with stakes, whacker, and tarps at Westmoor Club. Use Black Stake Body. Crew: Porter, Old School.",
+          "matchedNotes": null,
+          "timeline": [
+            "08:00 Standby with stakes, whacker, and tarps at Westmoor Club"
+          ],
+          "timelineDetails": [
+            ""
+          ],
+          "staff": [
+            "usr_porter",
+            "usr_old_school"
+          ],
+          "vehicles": [
+            "veh_black_stake_body"
+          ],
+          "inventory": [
+            "inv_stakes x1",
+            "inv_whacker x1"
+          ]
+        },
+        {
+          "status": "create",
+          "recommendedAction": "create",
+          "title": "WMC",
+          "eventDate": "2026-07-05",
+          "reason": "No plausible existing job found.",
+          "differences": [],
+          "warnings": [],
+          "draftNotes": "Breakdown at Westmoor Club. Use Box Truck and White Stake Body. Crew: Kenroy, Fuerte, Reid.",
+          "matchedNotes": null,
+          "timeline": [
+            "10:00 Breakdown at Westmoor Club"
+          ],
+          "timelineDetails": [
+            ""
+          ],
+          "staff": [
+            "usr_kenroy",
+            "usr_fuerte",
+            "usr_reid"
+          ],
+          "vehicles": [
+            "veh_box_truck",
+            "veh_white_stake_body"
+          ],
+          "inventory": []
+        },
+        {
+          "status": "create",
+          "recommendedAction": "create",
+          "title": "Wauwinet → Warehouse",
+          "eventDate": "2026-07-06",
+          "reason": "No plausible existing job found.",
+          "differences": [],
+          "warnings": [],
+          "draftNotes": "Pickup turfs, legs, and Biljax from Wauwinet. Use Transit Van and Black Stake Body. Crew: Goran, Younes, Stivan.",
+          "matchedNotes": null,
+          "timeline": [
+            "08:00 Pickup turfs, legs, and Biljax from Wauwinet"
+          ],
+          "timelineDetails": [
+            ""
+          ],
+          "staff": [
+            "usr_goran",
+            "usr_younes",
+            "usr_stivan"
+          ],
+          "vehicles": [
+            "veh_transit_van_1",
+            "veh_black_stake_body"
+          ],
+          "inventory": [
+            "inv_turfs x1",
+            "inv_stage_legs x1",
+            "inv_biljax x1"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "label": "extracts at least 8 job cards",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "bulk paste does not emit unmatched-reference warnings",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "all bulk jobs are clear creates",
+          "passed": true,
+          "detail": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "boss-slang-single-day#2",
+      "name": "Boss slang single-day extraction — run 2",
+      "durationMs": 7775,
+      "draftCount": 2,
+      "rows": [
+        {
+          "status": "create",
+          "recommendedAction": "create",
+          "title": "Galley Beach",
+          "eventDate": "2026-06-19",
+          "reason": "No plausible existing job found.",
+          "differences": [],
+          "warnings": [],
+          "draftNotes": "Install a full 40x40 new white floor in the seasonal tent at Galley Beach. Use Black Stake Body, White Stake Body, and Big Tent Ox. Crew includes Zach, Fuerte, Jay, Gabe, Courtney, Reid, and Old School.",
+          "matchedNotes": null,
+          "timeline": [
+            "07:15 Depart for Galley Beach",
+            "07:30-10:30 Install full 40x40 new white floor in seasonal tent at Galley Beach"
+          ],
+          "timelineDetails": [
+            "",
+            ""
+          ],
+          "staff": [
+            "usr_zach",
+            "usr_fuerte",
+            "usr_jay",
+            "usr_gabe",
+            "usr_courtney",
+            "usr_reid",
+            "usr_old_school"
+          ],
+          "vehicles": [
+            "veh_black_stake_body",
+            "veh_white_stake_body",
+            "veh_big_tent_ox"
+          ],
+          "inventory": [
+            "inv_new_white_floor x50"
+          ]
+        },
+        {
+          "status": "create",
+          "recommendedAction": "create",
+          "title": "Nancy Ann → 45 Tomahawk → Wauwinet",
+          "eventDate": "2026-06-19",
+          "reason": "No plausible existing job found.",
+          "differences": [],
+          "warnings": [],
+          "draftNotes": "Sort out 50 wide frame tops at Nancy Ann and bring them to 45 Tomahawk. Install 12x24 stage at Wauwinet with Biljax, turf, and legs. Use Black Stake Body, Big Tent Ox, and Transit Van. Crew includes Kenroy, Colin, Simone, Goran, Fuerte, Stivan, Younes, and Sardine.",
+          "matchedNotes": null,
+          "timeline": [
+            "08:00-12:00 Sort 50 wide frame tops at Nancy Ann and bring them to 45 Tomahawk",
+            "14:00 Install 12x24 stage at Wauwinet"
+          ],
+          "timelineDetails": [
+            "",
+            "Use Biljax, turf, and legs"
+          ],
+          "staff": [
+            "usr_kenroy",
+            "usr_colin",
+            "usr_simone",
+            "usr_goran",
+            "usr_fuerte",
+            "usr_stivan",
+            "usr_younes",
+            "usr_sardine"
+          ],
+          "vehicles": [
+            "veh_black_stake_body",
+            "veh_big_tent_ox",
+            "veh_transit_van_1"
+          ],
+          "inventory": [
+            "inv_frame_tops_50 x1",
+            "inv_biljax x18",
+            "inv_turfs x1",
+            "inv_stage_legs x1"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "label": "extracts exactly 2 job cards",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "Galley title is location-based",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "Galley keeps White SB as White Stake Body",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "Galley includes Old School from olds slang",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "40x40 floor becomes 50 floor panels",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "Stage route includes Wauwinet",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "12x24 stage becomes 18 Biljax",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "Turfs stay count-free placeholder",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "reconciliation has 2 create row(s)",
+          "passed": true,
+          "detail": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "identical-repost-skip#2",
+      "name": "Identical repost should skip — run 2",
+      "durationMs": 1660,
+      "draftCount": 1,
+      "rows": [
+        {
+          "status": "skip",
+          "recommendedAction": "skip",
+          "title": "Sconset Casino",
+          "eventDate": "2026-06-23",
+          "reason": "Already exists (same date, same location/title, same warehouse call, same first job time, similar timeline).",
+          "differences": [],
+          "warnings": [],
+          "draftNotes": "Install a 20x20 Chef Tent at Sconset Casino.",
+          "matchedNotes": "Install 20x20 Chef Tent at Sconset Casino.",
+          "timeline": [
+            "08:00-10:00 Install 20x20 Chef Tent at Sconset Casino"
+          ],
+          "timelineDetails": [
+            ""
+          ],
+          "staff": [
+            "usr_zach",
+            "usr_fuerte"
+          ],
+          "vehicles": [
+            "veh_black_stake_body"
+          ],
+          "inventory": [
+            "inv_chef_tent_20 x1"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "label": "extracts one Sconset job",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "reconciliation has 1 skip row(s)",
+          "passed": true,
+          "detail": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "changed-existing-review#2",
+      "name": "Changed existing job should require review — run 2",
+      "durationMs": 1715,
+      "draftCount": 1,
+      "rows": [
+        {
+          "status": "needs_review",
+          "recommendedAction": "update",
+          "title": "Sconset Casino",
+          "eventDate": "2026-06-23",
+          "reason": "Looks like an existing job, but the job card changed (same date, same location/title, same warehouse call, same first job time, similar timeline).",
+          "differences": [
+            "Crew changed.",
+            "Vehicles changed.",
+            "Notes changed."
+          ],
+          "warnings": [],
+          "draftNotes": "Install a 20x20 Chef Tent at Sconset Casino using Black Stake Body and White Stake Body vehicles. Crew consists of Zach, Fuerte, and Jay.",
+          "matchedNotes": "Install 20x20 Chef Tent at Sconset Casino.",
+          "timeline": [
+            "08:00-10:00 Install 20x20 Chef Tent at Sconset Casino"
+          ],
+          "timelineDetails": [
+            ""
+          ],
+          "staff": [
+            "usr_zach",
+            "usr_fuerte",
+            "usr_jay"
+          ],
+          "vehicles": [
+            "veh_black_stake_body",
+            "veh_white_stake_body"
+          ],
+          "inventory": [
+            "inv_chef_tent_20 x1"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "label": "reconciliation has 1 needs_review row(s)",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "recommended action is update",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "review mentions crew or vehicle change",
+          "passed": true,
+          "detail": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "moved-date-review#2",
+      "name": "Moved job should require review — run 2",
+      "durationMs": 2250,
+      "draftCount": 1,
+      "rows": [
+        {
+          "status": "needs_review",
+          "recommendedAction": "update",
+          "title": "Sconset Casino",
+          "eventDate": "2026-06-24",
+          "reason": "This looks like an existing job that may have moved to a different date.",
+          "differences": [
+            "Date changes from 2026-06-23 to 2026-06-24.",
+            "Notes changed."
+          ],
+          "warnings": [
+            "Moved jobs require review before replacing the old card."
+          ],
+          "draftNotes": "Install a 20x20 Chef Tent at Sconset Casino using Black Stake Body. Staff involved are Zach and Fuerte.",
+          "matchedNotes": "Install 20x20 Chef Tent at Sconset Casino.",
+          "timeline": [
+            "08:00-10:00 Install 20x20 Chef Tent at Sconset Casino"
+          ],
+          "timelineDetails": [
+            ""
+          ],
+          "staff": [
+            "usr_zach",
+            "usr_fuerte"
+          ],
+          "vehicles": [
+            "veh_black_stake_body"
+          ],
+          "inventory": [
+            "inv_chef_tent_20 x1"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "label": "reconciliation has 1 needs_review row(s)",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "review reason detects move",
+          "passed": true,
+          "detail": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "ambiguous-candidates-review#2",
+      "name": "Ambiguous duplicate candidates require review — run 2",
+      "durationMs": 3804,
+      "draftCount": 1,
+      "rows": [
+        {
+          "status": "needs_review",
+          "recommendedAction": "skip",
+          "title": "Galley Beach",
+          "eventDate": "2026-06-26",
+          "reason": "Multiple existing jobs look like possible matches.",
+          "differences": [
+            "Timeline changed.",
+            "Crew changed.",
+            "Vehicles changed.",
+            "Pack list changed.",
+            "Notes changed."
+          ],
+          "warnings": [
+            "Choose whether this is an update or a separate job."
+          ],
+          "draftNotes": "Install a finished floor at Galley Beach. Crew includes Zach and Fuerte, using Black Stake Body vehicle.",
+          "matchedNotes": null,
+          "timeline": [
+            "08:00 Install 40x40 floor at Galley Beach"
+          ],
+          "timelineDetails": [
+            "Requires 50 panels of New white floor."
+          ],
+          "staff": [
+            "usr_zach",
+            "usr_fuerte"
+          ],
+          "vehicles": [
+            "veh_black_stake_body"
+          ],
+          "inventory": [
+            "inv_new_white_floor x50"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "label": "reconciliation has 1 needs_review row(s)",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "multiple candidates returned",
+          "passed": true,
+          "detail": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "unknown-reference-review#2",
+      "name": "Unknown staff/vehicle reference should force review — run 2",
+      "durationMs": 3560,
+      "draftCount": 1,
+      "rows": [
+        {
+          "status": "needs_review",
+          "recommendedAction": "create",
+          "title": "WMC",
+          "eventDate": "2026-06-27",
+          "reason": "Some staff, vehicle, or inventory references need a human check.",
+          "differences": [],
+          "warnings": [
+            "1 staff, vehicle, or inventory reference could not be matched."
+          ],
+          "draftNotes": "Install a 30x30 chef tent at Westmoor Club using a purple monster truck and black stake body. Crew: Bobby, Zach.",
+          "matchedNotes": null,
+          "timeline": [
+            "07:00 Install 30x30 chef tent at WMC"
+          ],
+          "timelineDetails": [
+            ""
+          ],
+          "staff": [
+            "usr_zach"
+          ],
+          "vehicles": [
+            "veh_black_stake_body"
+          ],
+          "inventory": [
+            "inv_chef_tent_30 x1"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "label": "reconciliation has 1 needs_review row(s)",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "unmatched reference warning surfaced",
+          "passed": true,
+          "detail": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "month-bulk-stress#2",
+      "name": "Month-like bulk paste stress — run 2",
+      "durationMs": 11651,
+      "draftCount": 9,
+      "rows": [
+        {
+          "status": "create",
+          "recommendedAction": "create",
+          "title": "NGC",
+          "eventDate": "2026-06-28",
+          "reason": "No plausible existing job found.",
+          "differences": [],
+          "warnings": [],
+          "draftNotes": "Install 20x20 Chef Tent at NGC with cafe lights and clear sides. Use Black Stake Body and Transit Van for transportation. Staff includes Zach, Fuerte, and Jay.",
+          "matchedNotes": null,
+          "timeline": [
+            "08:00 Install 20x20 Chef Tent at NGC"
+          ],
+          "timelineDetails": [
+            "With cafe lights and clear sides."
+          ],
+          "staff": [
+            "usr_zach",
+            "usr_fuerte",
+            "usr_jay"
+          ],
+          "vehicles": [
+            "veh_black_stake_body",
+            "veh_transit_van_1"
+          ],
+          "inventory": [
+            "inv_chef_tent_20 x1",
+            "inv_cafe_lighting x1",
+            "inv_clear_sides_20 x1"
+          ]
+        },
+        {
+          "status": "create",
+          "recommendedAction": "create",
+          "title": "WMC",
+          "eventDate": "2026-06-29",
+          "reason": "No plausible existing job found.",
+          "differences": [],
+          "warnings": [],
+          "draftNotes": "Breakdown 30x30 chef tent at WMC using White Stake Body and Box Truck. Team includes Gabe, Courtney, Reid, and Old School.",
+          "matchedNotes": null,
+          "timeline": [
+            "07:00 Breakdown 30x30 Chef Tent at WMC"
+          ],
+          "timelineDetails": [
+            ""
+          ],
+          "staff": [
+            "usr_gabe",
+            "usr_courtney",
+            "usr_reid",
+            "usr_old_school"
+          ],
+          "vehicles": [
+            "veh_white_stake_body",
+            "veh_box_truck"
+          ],
+          "inventory": [
+            "inv_chef_tent_30 x1"
+          ]
+        },
+        {
+          "status": "create",
+          "recommendedAction": "create",
+          "title": "Antiques at Bartlett",
+          "eventDate": "2026-06-30",
+          "reason": "No plausible existing job found.",
+          "differences": [],
+          "warnings": [],
+          "draftNotes": "Install new brown floor inside 32x40 tent at Antiques. Use Black Stake Body and Big Tent Ox for transport. Completion by Kenroy, Colin, Simone.",
+          "matchedNotes": null,
+          "timeline": [
+            "07:30-11:30 Install new brown floor in 32x40 tent at Antiques"
+          ],
+          "timelineDetails": [
+            ""
+          ],
+          "staff": [
+            "usr_kenroy",
+            "usr_colin",
+            "usr_simone"
+          ],
+          "vehicles": [
+            "veh_black_stake_body",
+            "veh_big_tent_ox"
+          ],
+          "inventory": [
+            "inv_new_brown_floor x40"
+          ]
+        },
+        {
+          "status": "create",
+          "recommendedAction": "create",
+          "title": "Warehouse → Nancy Ann",
+          "eventDate": "2026-07-01",
+          "reason": "No plausible existing job found.",
+          "differences": [],
+          "warnings": [],
+          "draftNotes": "Drop 50 wide frame tops from Warehouse to Nancy Ann and bring old sides back. Transit Van used. Staff: Goran, Stivan, Younes.",
+          "matchedNotes": null,
+          "timeline": [
+            "09:00 Drop 50 wide frame tops from Warehouse to Nancy Ann"
+          ],
+          "timelineDetails": [
+            "Bring old sides back."
+          ],
+          "staff": [
+            "usr_goran",
+            "usr_stivan",
+            "usr_younes"
+          ],
+          "vehicles": [
+            "veh_transit_van_1"
+          ],
+          "inventory": [
+            "inv_frame_tops_50 x1"
+          ]
+        },
+        {
+          "status": "create",
+          "recommendedAction": "create",
+          "title": "Wauwinet",
+          "eventDate": "2026-07-02",
+          "reason": "No plausible existing job found.",
+          "differences": [],
+          "warnings": [],
+          "draftNotes": "Install 12x24 stage at Wauwinet. Use Black Stake Body and Big Tent Ox. Team includes Paco, Fuerte, Sardine. Includes Biljax, turf, and legs.",
+          "matchedNotes": null,
+          "timeline": [
+            "07:00 Install 12x24 stage at Wauwinet"
+          ],
+          "timelineDetails": [
+            "Includes Biljax, turf, and legs."
+          ],
+          "staff": [
+            "usr_paco",
+            "usr_fuerte",
+            "usr_sardine"
+          ],
+          "vehicles": [
+            "veh_black_stake_body",
+            "veh_big_tent_ox"
+          ],
+          "inventory": [
+            "inv_biljax x18",
+            "inv_turfs x1",
+            "inv_stage_legs x1"
+          ]
+        },
+        {
+          "status": "create",
+          "recommendedAction": "create",
+          "title": "Sconset Casino",
+          "eventDate": "2026-07-03",
+          "reason": "No plausible existing job found.",
+          "differences": [],
+          "warnings": [],
+          "draftNotes": "Install clear sides and cafe lighting at Sconset Casino using White Stake Body. Zach and Gabe to complete.",
+          "matchedNotes": null,
+          "timeline": [
+            "08:00 Install clear sides and cafe lighting at Sconset Casino"
+          ],
+          "timelineDetails": [
+            ""
+          ],
+          "staff": [
+            "usr_zach",
+            "usr_gabe"
+          ],
+          "vehicles": [
+            "veh_white_stake_body"
+          ],
+          "inventory": [
+            "inv_clear_sides_20 x1",
+            "inv_cafe_lighting x1"
+          ]
+        },
+        {
+          "status": "create",
+          "recommendedAction": "create",
+          "title": "Westmoor Club",
+          "eventDate": "2026-07-04",
+          "reason": "No plausible existing job found.",
+          "differences": [],
+          "warnings": [],
+          "draftNotes": "Standby at Westmoor Club for event, bringing stakes, whacker, and tarps. Black Stake Body is in use. Staff: Porter, Old School.",
+          "matchedNotes": null,
+          "timeline": [
+            "08:00 Standby at Westmoor Club for event"
+          ],
+          "timelineDetails": [
+            "Bring stakes, whacker, tarps."
+          ],
+          "staff": [
+            "usr_porter",
+            "usr_old_school"
+          ],
+          "vehicles": [
+            "veh_black_stake_body"
+          ],
+          "inventory": [
+            "inv_stakes x1",
+            "inv_whacker x1"
+          ]
+        },
+        {
+          "status": "create",
+          "recommendedAction": "create",
+          "title": "Westmoor Club",
+          "eventDate": "2026-07-05",
+          "reason": "No plausible existing job found.",
+          "differences": [],
+          "warnings": [],
+          "draftNotes": "Breakdown at Westmoor Club with Box Truck and White SB. Completed by Kenroy, Fuerte, Reid.",
+          "matchedNotes": null,
+          "timeline": [
+            "10:00 Breakdown at Westmoor Club"
+          ],
+          "timelineDetails": [
+            ""
+          ],
+          "staff": [
+            "usr_kenroy",
+            "usr_fuerte",
+            "usr_reid"
+          ],
+          "vehicles": [
+            "veh_box_truck",
+            "veh_white_stake_body"
+          ],
+          "inventory": []
+        },
+        {
+          "status": "create",
+          "recommendedAction": "create",
+          "title": "Wauwinet",
+          "eventDate": "2026-07-06",
+          "reason": "No plausible existing job found.",
+          "differences": [],
+          "warnings": [],
+          "draftNotes": "Pick up turfs, legs, and Biljax from Wauwinet using Transit Van and Black Stake Body. Goran, Younes, Stivan to handle.",
+          "matchedNotes": null,
+          "timeline": [
+            "08:00 Pickup turfs, legs, and Biljax from Wauwinet"
+          ],
+          "timelineDetails": [
+            ""
+          ],
+          "staff": [
+            "usr_goran",
+            "usr_younes",
+            "usr_stivan"
+          ],
+          "vehicles": [
+            "veh_transit_van_1",
+            "veh_black_stake_body"
+          ],
+          "inventory": [
+            "inv_biljax x18",
+            "inv_turfs x1",
+            "inv_stage_legs x1"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "label": "extracts at least 8 job cards",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "bulk paste does not emit unmatched-reference warnings",
+          "passed": true,
+          "detail": null
+        },
+        {
+          "label": "all bulk jobs are clear creates",
+          "passed": true,
+          "detail": null
+        }
+      ],
+      "error": null
+    }
+  ]
+}

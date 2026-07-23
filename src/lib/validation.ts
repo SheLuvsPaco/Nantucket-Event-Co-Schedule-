@@ -156,6 +156,11 @@ const eventInventorySchema = z.object({
   ),
   packed: z.boolean().default(false),
   notes: optionalText,
+  section: optionalText,
+  sortOrder: z.preprocess(
+    (value) => (value === "" || value === undefined ? 0 : value),
+    z.coerce.number().int().min(0),
+  ),
 });
 
 const eventStaffSchema = z.object({

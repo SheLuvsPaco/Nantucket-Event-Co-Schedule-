@@ -522,6 +522,12 @@
   margin-bottom: 14px;
 }
 
+.sectionActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .formRow {
   display: grid;
   min-width: 0;
@@ -622,6 +628,10 @@
 
   .formRow {
     padding: 12px;
+  }
+
+  .sectionActions :global(.button) {
+    flex: 1 1 180px;
   }
 
   .saveBar {

@@ -1,0 +1,373 @@
+.mobileAccount,
+.desktopAccount {
+  position: relative;
+}
+
+.mobileSummary,
+.desktopSummary {
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.mobileSummary::-webkit-details-marker,
+.desktopSummary::-webkit-details-marker {
+  display: none;
+}
+
+.mobileSummary {
+  display: grid;
+  width: 50px;
+  height: 50px;
+  place-items: center;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--navy);
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+.mobileAvatar {
+  width: 46px;
+  height: 46px;
+}
+
+.desktopSummary {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 11px 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  color: var(--paper);
+}
+
+.desktopAvatar {
+  width: 42px;
+  height: 42px;
+}
+
+.desktopIdentity {
+  min-width: 0;
+}
+
+.desktopIdentity strong,
+.desktopIdentity span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.desktopIdentity strong {
+  font-size: 0.88rem;
+}
+
+.desktopIdentity span {
+  margin-top: 3px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.menu {
+  position: absolute;
+  z-index: 60;
+  display: grid;
+  width: min(310px, calc(100vw - 32px));
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  color: var(--ink);
+}
+
+.mobileAccount .menu {
+  top: calc(100% + 9px);
+  right: 0;
+}
+
+.desktopAccount .menu {
+  bottom: calc(100% + 9px);
+  left: 0;
+}
+
+.profile,
+.settingsHeading {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.profile {
+  padding: 2px 3px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.profileAvatar {
+  width: 50px;
+  height: 50px;
+}
+
+.profile strong,
+.profile span,
+.settingsHeading strong,
+.settingsHeading span {
+  display: block;
+}
+
+.profile strong {
+  font-size: 0.92rem;
+}
+
+.profile span {
+  margin-top: 3px;
+  color: var(--ink-faint);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.menuButton,
+.backButton,
+.uploadButton,
+.removeButton,
+.saveButton {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  gap: 9px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.menuButton {
+  padding: 0 11px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+}
+
+.menuButton:hover {
+  background: var(--paper);
+}
+
+.menuButton svg,
+.backButton svg,
+.uploadButton svg,
+.removeButton svg,
+.saveButton svg {
+  width: 18px;
+  height: 18px;
+}
+
+.signOut {
+  margin-top: 3px;
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 9px 9px;
+  color: var(--red);
+}
+
+.settings {
+  display: grid;
+  gap: 12px;
+}
+
+.backButton {
+  width: fit-content;
+  min-height: 36px;
+  padding: 0 5px 0 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+}
+
+.settingsAvatar {
+  width: 68px;
+  height: 68px;
+  font-size: 1rem;
+}
+
+.settingsHeading strong {
+  font-size: 1rem;
+}
+
+.settingsHeading span {
+  margin-top: 4px;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.settingsTitle {
+  display: block;
+  font-size: 1.05rem;
+}
+
+.notificationHeading {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.notificationIcon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--paper-deep);
+  color: var(--navy);
+}
+
+.notificationIcon svg {
+  width: 23px;
+  height: 23px;
+}
+
+.notificationStatus {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface-raised);
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.statusEnabled,
+.statusNeutral {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+}
+
+.statusEnabled {
+  background: var(--green);
+  box-shadow: 0 0 0 4px var(--green-soft);
+}
+
+.statusNeutral {
+  background: var(--ink-faint);
+}
+
+.notificationActions {
+  display: grid;
+  gap: 8px;
+}
+
+.settingsCopy {
+  margin: 5px 0 0;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.uploadButton,
+.removeButton,
+.saveButton {
+  justify-content: center;
+  padding: 0 12px;
+}
+
+.uploadButton {
+  position: relative;
+  overflow: hidden;
+  background: var(--navy);
+  color: var(--paper);
+}
+
+.uploadButton input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+}
+
+.removeButton {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--red);
+}
+
+.passwordField {
+  display: grid;
+  gap: 6px;
+}
+
+.passwordField span {
+  color: var(--ink-soft);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.passwordField input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font-size: 16px;
+}
+
+.passwordField input:focus {
+  border-color: var(--light-blue);
+  box-shadow: 0 0 0 3px rgba(91, 153, 214, 0.12);
+  outline: none;
+}
+
+.saveButton {
+  border: 0;
+  background: var(--navy);
+  color: var(--paper);
+}
+
+.saveButton:disabled,
+.removeButton:disabled,
+.uploadButton:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.error,
+.success {
+  margin: 3px 0 0;
+  padding: 9px 10px;
+  border-radius: 8px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.error {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.success {
+  background: var(--green-soft);
+  color: oklch(40% 0.1 155);
+}

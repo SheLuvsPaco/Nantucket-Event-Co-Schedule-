@@ -57,6 +57,13 @@
       "when": 1782952988795,
       "tag": "0007_complex_sleeper",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1784675282161,
+      "tag": "0008_slim_scourge",
+      "breakpoints": true
     }
   ]
 }

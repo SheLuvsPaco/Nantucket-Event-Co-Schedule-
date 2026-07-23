@@ -192,6 +192,14 @@
   min-height: 96px;
 }
 
+.panelHeading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .panelTitle {
   display: flex;
   align-items: center;
@@ -223,6 +231,20 @@
 .panelTitle h3 {
   color: var(--ink);
   font-size: 1rem;
+}
+
+.bulkCrewButton {
+  min-height: 40px;
+  margin-left: auto;
+  padding-inline: 12px;
+  font-size: 0.76rem;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.bulkCrewButton svg {
+  width: 17px;
+  height: 17px;
 }
 
 .gridTwo,
@@ -294,7 +316,24 @@
   color: var(--ink);
 }
 
-.packTop span {
+.packIdentity {
+  display: grid;
+  gap: 3px;
+}
+
+.packTop .packSection {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--navy);
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.065em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.packTop > span {
   padding: 5px 8px;
   border-radius: 999px;
   font-size: 0.66rem;
@@ -303,12 +342,12 @@
   text-transform: uppercase;
 }
 
-.packTop span[data-status="matched"] {
+.packTop > span[data-status="matched"] {
   background: var(--green-soft);
   color: oklch(39% 0.1 154);
 }
 
-.packTop span[data-status="new"] {
+.packTop > span[data-status="new"] {
   background: var(--orange-soft);
   color: var(--burnt);
 }
@@ -401,6 +440,11 @@
   .panel,
   .packRow {
     padding: 12px;
+  }
+
+  .bulkCrewButton {
+    width: 100%;
+    margin-left: 0;
   }
 
   .stickyActions {

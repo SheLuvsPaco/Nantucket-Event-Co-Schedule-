@@ -1,8 +1,23 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, X, Tent, Mic } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  CopyPlus,
+  Sparkles,
+  X,
+  Tent,
+  Mic,
+} from "lucide-react";
 import {
   businessLabels,
   defaultBusiness as fallbackBusiness,
@@ -41,9 +56,64 @@ const loadingMessages = [
   "Extracting dates & times...",
   "Finding the right crew...",
   "Checking vehicles & inventory...",
+  "Checking for duplicates...",
   "Drafting the master plan...",
-  "Finalizing events..."
+  "Finalizing events...",
 ];
+
+type QuickAddDraft = {
+  title: string;
+  eventDate: string;
+  venue: string | null;
+  address: string | null;
+  business: Business;
+  callTime: string | null;
+  notes: string | null;
+  timeline: Array<{
+    time: string;
+    endTime: string | null;
+    label: string;
+    details: string | null;
+    sortOrder: number;
+  }>;
+  inventory: Array<{ inventoryItemId: string; quantity: number }>;
+  staff: Array<{ userId: string }>;
+  vehicles: Array<{ vehicleId: string }>;
+};
+
+type QuickAddPreviewRow = {
+  rowId: string;
+  status: "skip" | "create" | "needs_review";
+  recommendedAction: "skip" | "create" | "update";
+  draft: QuickAddDraft;
+  matchedEvent: {
+    id: string;
+    title: string;
+    eventDate: string;
+    venue: string | null;
+    callTime: string | null;
+  } | null;
+  candidates: Array<{
+    id: string;
+    title: string;
+    eventDate: string;
+    venue: string | null;
+    callTime: string | null;
+  }>;
+  confidence: number;
+  reason: string;
+  differences: string[];
+  warnings: string[];
+};
+
+type QuickAddPublishSummary = {
+  createdCount: number;
+  updatedCount: number;
+  skippedCount: number;
+  reviewedCount: number;
+};
+
+type ReviewAction = "create" | "update" | "skip";
 
 export function QuickAddModal({
   defaultBusiness = fallbackBusiness,
@@ -56,7 +126,10 @@ export function QuickAddModal({
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [successCount, setSuccessCount] = useState<number | null>(null);
+  const [successSummary, setSuccessSummary] =
+    useState<QuickAddPublishSummary | null>(null);
+  const [reviewRows, setReviewRows] = useState<QuickAddPreviewRow[] | null>(null);
+  const [reviewActions, setReviewActions] = useState<Record<string, ReviewAction>>({});
   const [messageIndex, setMessageIndex] = useState(0);
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
@@ -145,9 +218,10 @@ export function QuickAddModal({
     setMessageIndex(0);
     setLoading(true);
     setError("");
+    setReviewRows(null);
 
     try {
-      const response = await fetch("/api/events/parse", {
+      const response = await fetch("/api/events/parse/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ business: defaultBusiness, text }),
@@ -159,13 +233,19 @@ export function QuickAddModal({
         throw new Error(data.error || "Failed to parse events");
       }
 
-      setSuccessCount(data.createdCount);
-      setText("");
-      router.refresh();
+      const rows = data.rows as QuickAddPreviewRow[];
+      const needsReview = rows.filter((row) => row.status === "needs_review");
+      const initialActions = Object.fromEntries(
+        rows.map((row) => [row.rowId, row.recommendedAction]),
+      ) as Record<string, ReviewAction>;
+      setReviewActions(initialActions);
 
-      setTimeout(() => {
-        onClose();
-      }, 2000);
+      if (!needsReview.length) {
+        await publishRows(rows, initialActions);
+        return;
+      }
+
+      setReviewRows(rows);
 
     } catch (err: unknown) {
       setError(
@@ -177,6 +257,70 @@ export function QuickAddModal({
       setLoading(false);
     }
   }
+
+  async function publishRows(
+    rows = reviewRows ?? [],
+    actionOverrides = reviewActions,
+  ) {
+    if (!rows.length) return;
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/events/parse/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rows: rows.map((row) => {
+            const action = actionOverrides[row.rowId] ?? row.recommendedAction;
+            return {
+              rowId: row.rowId,
+              originalStatus: row.status,
+              action,
+              matchedEventId:
+                action === "update" ? row.matchedEvent?.id ?? null : null,
+              draft: row.draft,
+            };
+          }),
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to publish Quick Add changes");
+      }
+
+      setSuccessSummary({
+        createdCount: data.createdCount ?? 0,
+        updatedCount: data.updatedCount ?? 0,
+        skippedCount: data.skippedCount ?? 0,
+        reviewedCount: data.reviewedCount ?? 0,
+      });
+      setText("");
+      setReviewRows(null);
+      router.refresh();
+
+      setTimeout(() => {
+        onClose();
+      }, 2400);
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "The reviewed events could not be published. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const reviewGroups = reviewRows
+    ? {
+        create: reviewRows.filter((row) => row.status === "create"),
+        skip: reviewRows.filter((row) => row.status === "skip"),
+        review: reviewRows.filter((row) => row.status === "needs_review"),
+      }
+    : null;
 
   return (
     <div
@@ -205,7 +349,9 @@ export function QuickAddModal({
         </h2>
 
         <p className={styles.description}>
-          Paste your unstructured schedule here (e.g., from WhatsApp). The AI will extract dates, times, crew, trucks, and items to automatically create your events.
+          Paste your unstructured schedule here (e.g., from WhatsApp). The AI
+          will extract dates, times, crew, trucks, and items, then check for
+          duplicates before anything risky is changed.
         </p>
         <p
           className={styles.businessHint}
@@ -214,9 +360,87 @@ export function QuickAddModal({
           Adding to {businessLabels[defaultBusiness]}
         </p>
 
-        {successCount !== null ? (
+        {successSummary !== null ? (
           <div className={styles.success}>
-            Successfully created {successCount} events! Refreshing schedule...
+            Quick Add finished: {successSummary.createdCount} created,{" "}
+            {successSummary.updatedCount} updated, {successSummary.skippedCount}{" "}
+            skipped, {successSummary.reviewedCount} reviewed. Refreshing
+            schedule...
+          </div>
+        ) : reviewRows ? (
+          <div className={styles.reviewFlow}>
+            <div className={styles.reviewSummary}>
+              <span>
+                <CopyPlus aria-hidden="true" />
+                {reviewGroups?.create.length ?? 0} will create
+              </span>
+              <span>
+                <CheckCircle2 aria-hidden="true" />
+                {reviewGroups?.skip.length ?? 0} already exists
+              </span>
+              <span>
+                <AlertTriangle aria-hidden="true" />
+                {reviewGroups?.review.length ?? 0} needs review
+              </span>
+            </div>
+
+            {reviewGroups && reviewGroups.create.length > 0 && (
+              <ReviewSection
+                title="Will create"
+                rows={reviewGroups.create}
+                reviewActions={reviewActions}
+                setReviewActions={setReviewActions}
+                readonly
+              />
+            )}
+
+            {reviewGroups && reviewGroups.skip.length > 0 && (
+              <ReviewSection
+                title="Already exists — skipped"
+                rows={reviewGroups.skip}
+                reviewActions={reviewActions}
+                setReviewActions={setReviewActions}
+                readonly
+              />
+            )}
+
+            {reviewGroups && reviewGroups.review.length > 0 && (
+              <ReviewSection
+                title="Needs review"
+                rows={reviewGroups.review}
+                reviewActions={reviewActions}
+                setReviewActions={setReviewActions}
+              />
+            )}
+
+            {error && (
+              <p className={styles.error} role="alert">
+                {error}
+              </p>
+            )}
+
+            <div className={styles.actions}>
+              <button
+                className="button"
+                disabled={loading}
+                onClick={() => {
+                  setReviewRows(null);
+                  setError("");
+                }}
+                type="button"
+              >
+                Back to text
+              </button>
+              <button
+                className="button button-primary"
+                disabled={loading}
+                onClick={() => publishRows()}
+                type="button"
+              >
+                <Sparkles aria-hidden="true" />
+                Publish selected
+              </button>
+            </div>
           </div>
         ) : (
           <div className={styles.composer}>
@@ -277,5 +501,127 @@ export function QuickAddModal({
         )}
       </div>
     </div>
+  );
+}
+
+function ReviewSection({
+  title,
+  rows,
+  reviewActions,
+  setReviewActions,
+  readonly = false,
+}: {
+  title: string;
+  rows: QuickAddPreviewRow[];
+  reviewActions: Record<string, ReviewAction>;
+  setReviewActions: Dispatch<SetStateAction<Record<string, ReviewAction>>>;
+  readonly?: boolean;
+}) {
+  return (
+    <section className={styles.reviewSection}>
+      <h3>{title}</h3>
+      <div className={styles.reviewList}>
+        {rows.map((row) => (
+          <article className={styles.reviewCard} key={row.rowId}>
+            <div className={styles.reviewCardHeader}>
+              <div>
+                <p className={styles.reviewEyebrow}>
+                  {row.draft.eventDate}
+                  {row.draft.callTime ? ` · Warehouse ${row.draft.callTime}` : ""}
+                </p>
+                <h4>{row.draft.title}</h4>
+              </div>
+              <span className={styles.reviewBadge} data-status={row.status}>
+                {row.status === "create"
+                  ? "New"
+                  : row.status === "skip"
+                    ? "Skipped"
+                    : "Review"}
+              </span>
+            </div>
+
+            <p className={styles.reviewReason}>
+              <Clock aria-hidden="true" />
+              {row.reason}
+            </p>
+
+            {row.matchedEvent && (
+              <p className={styles.matchText}>
+                Match: {row.matchedEvent.title} · {row.matchedEvent.eventDate}
+              </p>
+            )}
+
+            {row.differences.length > 0 && (
+              <ul className={styles.diffList}>
+                {row.differences.map((difference) => (
+                  <li key={difference}>{difference}</li>
+                ))}
+              </ul>
+            )}
+
+            {row.warnings.length > 0 && (
+              <ul className={styles.warningList}>
+                {row.warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            )}
+
+            <div className={styles.miniStats}>
+              <span>{row.draft.timeline.length} timeline</span>
+              <span>{row.draft.staff.length} crew</span>
+              <span>{row.draft.vehicles.length} vehicles</span>
+              <span>{row.draft.inventory.length} pack items</span>
+            </div>
+
+            {!readonly && (
+              <div className={styles.reviewActions}>
+                {row.matchedEvent && (
+                  <button
+                    className={styles.choiceButton}
+                    data-selected={reviewActions[row.rowId] === "update"}
+                    onClick={() =>
+                      setReviewActions((current) => ({
+                        ...current,
+                        [row.rowId]: "update",
+                      }))
+                    }
+                    type="button"
+                  >
+                    Update matched event
+                  </button>
+                )}
+                <button
+                  className={styles.choiceButton}
+                  data-selected={reviewActions[row.rowId] === "skip"}
+                  onClick={() =>
+                    setReviewActions((current) => ({
+                      ...current,
+                      [row.rowId]: "skip",
+                    }))
+                  }
+                  type="button"
+                >
+                  Skip
+                </button>
+                <button
+                  className={styles.choiceButton}
+                  data-selected={reviewActions[row.rowId] === "create"}
+                  onClick={() =>
+                    setReviewActions((current) => ({
+                      ...current,
+                      [row.rowId]: "create",
+                    }))
+                  }
+                  type="button"
+                >
+                  Create separate
+                </button>
+              </div>
+            )}
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }

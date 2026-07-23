@@ -18,14 +18,69 @@ import {
   getStaffCardStart,
   sortStaffDayEvents,
 } from "@/lib/schedule-order";
-import { isCountFreePackItem } from "@/lib/pack-list";
-import type { ScheduleEvent } from "@/types";
+import {
+  groupPackItemsBySection,
+  isCountFreePackItem,
+} from "@/lib/pack-list";
+import type { EventInventoryRecord, ScheduleEvent } from "@/types";
 import { PackItemCheckbox } from "./pack-item-checkbox";
 import { UserAvatar } from "./user-avatar";
 import styles from "./staff-day-view.module.css";
 
 function subscribeToClientState() {
   return () => {};
+}
+
+function PackItemList({
+  entries,
+  eventId,
+}: {
+  entries: EventInventoryRecord[];
+  eventId: string;
+}) {
+  return (
+    <div className={styles.packList}>
+      {entries.map((entry) => {
+        const countFree = isCountFreePackItem(entry.item?.name);
+        const shortage =
+          !countFree && entry.item && entry.quantity > entry.item.quantity;
+
+        return (
+          <div
+            className={styles.packItem}
+            data-shortage={shortage}
+            key={entry.id}
+            style={{
+              alignItems: "flex-start",
+              display: "flex",
+              opacity: entry.packed ? 0.5 : 1,
+            }}
+          >
+            <PackItemCheckbox
+              eventId={eventId}
+              eventInventoryId={entry.id}
+              initialPacked={entry.packed}
+            />
+            {countFree ? null : (
+              <span className={styles.quantity} style={{ marginTop: "0.125rem" }}>
+                {entry.quantity}
+              </span>
+            )}
+            <div style={{ textDecoration: entry.packed ? "line-through" : "none" }}>
+              <strong>{entry.item?.name}</strong>
+              <span>{entry.item?.size || entry.item?.category || "Item"}</span>
+              {entry.notes ? <p>{entry.notes}</p> : null}
+              {shortage ? (
+                <p className={styles.shortage}>
+                  Inventory shows only {entry.item?.quantity} available.
+                </p>
+              ) : null}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 export function StaffDayView({
@@ -109,6 +164,7 @@ export function StaffDayView({
               event.title.trim().toLowerCase()
                 ? null
                 : event.venue;
+            const packLayout = groupPackItemsBySection(event.inventory);
 
             const isFocus = eventIndex === activeEventIndex;
 
@@ -223,49 +279,26 @@ export function StaffDayView({
                     </div>
                   </div>
                   {event.inventory.length ? (
-                    <div className={styles.packList}>
-                      {event.inventory.map((entry) => {
-                        const countFree = isCountFreePackItem(entry.item?.name);
-                        const shortage =
-                          !countFree &&
-                          entry.item &&
-                          entry.quantity > entry.item.quantity;
-                        return (
-                          <div
-                            className={styles.packItem}
-                            data-shortage={shortage}
-                            key={entry.inventoryItemId}
-                            style={{ display: "flex", alignItems: "flex-start", opacity: entry.packed ? 0.5 : 1 }}
+                    packLayout.sectioned ? (
+                      <div className={styles.packGroups}>
+                        {packLayout.groups.map((group, groupIndex) => (
+                          <section
+                            className={styles.packGroup}
+                            key={group.section ?? `other-items-${groupIndex}`}
                           >
-                            <PackItemCheckbox
-                              eventId={event.id}
-                              inventoryItemId={entry.inventoryItemId}
-                              initialPacked={entry.packed}
-                            />
-                            {countFree ? null : (
-                              <span
-                                className={styles.quantity}
-                                style={{ marginTop: "0.125rem" }}
-                              >
-                                {entry.quantity}
-                              </span>
-                            )}
-                            <div style={{ textDecoration: entry.packed ? "line-through" : "none" }}>
-                              <strong>{entry.item?.name}</strong>
-                              <span>
-                                {entry.item?.size || entry.item?.category || "Item"}
-                              </span>
-                              {entry.notes ? <p>{entry.notes}</p> : null}
-                              {shortage ? (
-                                <p className={styles.shortage}>
-                                  Inventory shows only {entry.item?.quantity} available.
-                                </p>
-                              ) : null}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                            <h4 className={styles.packGroupTitle}>
+                              {group.section ?? "Other items"}
+                            </h4>
+                            <PackItemList entries={group.items} eventId={event.id} />
+                          </section>
+                        ))}
+                      </div>
+                    ) : (
+                      <PackItemList
+                        entries={packLayout.groups[0]?.items ?? []}
+                        eventId={event.id}
+                      />
+                    )
                   ) : (
                     <p className={styles.missing}>No packing list added yet.</p>
                   )}

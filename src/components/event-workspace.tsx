@@ -38,6 +38,7 @@ import {
   type Business,
 } from "@/lib/businesses";
 import { isCountFreePackItem } from "@/lib/pack-list";
+import { getUnassignedCrew, isCrewRole } from "@/lib/roles";
 import styles from "./event-workspace.module.css";
 
 type EventDraft = {
@@ -66,6 +67,8 @@ type EventDraft = {
     quantity: number;
     packed: boolean;
     notes: string;
+    section: string | null;
+    sortOrder: number;
   }>;
   staff: Array<{
     userId: string;
@@ -129,6 +132,8 @@ function toDraft(event: ScheduleEvent): EventDraft {
       quantity: entry.quantity,
       packed: entry.packed,
       notes: entry.notes ?? "",
+      section: entry.section,
+      sortOrder: entry.sortOrder,
     })),
     staff: event.staff.map((entry) => ({
       userId: entry.userId,
@@ -607,6 +612,19 @@ function EventForm({
       ),
     [draft.business, people, selectedStaffIds],
   );
+  const eligibleCrew = useMemo(
+    () =>
+      branchPeople.filter(
+        (person) =>
+          person.active &&
+          person.business === draft.business &&
+          isCrewRole(person.role),
+      ),
+    [branchPeople, draft.business],
+  );
+  const unassignedCrew = getUnassignedCrew(eligibleCrew, draft.staff);
+  const allCrewAssigned =
+    eligibleCrew.length > 0 && unassignedCrew.length === 0;
   const branchVehicles = useMemo(
     () =>
       vehicles.filter(
@@ -706,7 +724,14 @@ function EventForm({
     if (!available) return;
     update("inventory", [
       ...draft.inventory,
-      { inventoryItemId: available.id, quantity: 1, packed: false, notes: "" },
+      {
+        inventoryItemId: available.id,
+        quantity: 1,
+        packed: false,
+        notes: "",
+        section: null,
+        sortOrder: draft.inventory.length,
+      },
     ]);
   }
 
@@ -725,6 +750,19 @@ function EventForm({
         callTime: draft.callTime,
         notes: "",
       },
+    ]);
+  }
+
+  function assignAllCrew() {
+    if (!unassignedCrew.length) return;
+    update("staff", [
+      ...draft.staff,
+      ...unassignedCrew.map((person) => ({
+        userId: person.id,
+        assignment: "",
+        callTime: draft.callTime,
+        notes: "",
+      })),
     ]);
   }
 
@@ -1240,9 +1278,31 @@ function EventForm({
               <p className={styles.inlineEmpty}>No crew assigned yet.</p>
             ) : null}
           </div>
-          <button className="button button-secondary" onClick={addStaff} type="button">
-            <Plus aria-hidden="true" /> Assign crew member
-          </button>
+          <div className={styles.sectionActions}>
+            <button
+              aria-label={
+                allCrewAssigned ? "All crew assigned" : "Assign all crew"
+              }
+              className="button button-secondary"
+              disabled={!eligibleCrew.length || allCrewAssigned}
+              onClick={assignAllCrew}
+              type="button"
+            >
+              {allCrewAssigned ? (
+                <Check aria-hidden="true" />
+              ) : (
+                <UsersRound aria-hidden="true" />
+              )}
+              {allCrewAssigned ? "All crew added" : "All crew"}
+            </button>
+            <button
+              className="button button-secondary"
+              onClick={addStaff}
+              type="button"
+            >
+              <Plus aria-hidden="true" /> Assign crew member
+            </button>
+          </div>
         </EditorSection>
 
         <EditorSection

@@ -4,11 +4,11 @@ import { useState } from "react";
 
 export function PackItemCheckbox({
   eventId,
-  inventoryItemId,
+  eventInventoryId,
   initialPacked,
 }: {
   eventId: string;
-  inventoryItemId: string;
+  eventInventoryId: string;
   initialPacked: boolean;
 }) {
   const [packed, setPacked] = useState(initialPacked);
@@ -24,7 +24,7 @@ export function PackItemCheckbox({
       const res = await fetch(`/api/events/${eventId}/pack`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ inventoryItemId, packed: nextPacked }),
+        body: JSON.stringify({ eventInventoryId, packed: nextPacked }),
       });
       if (!res.ok) {
         setPacked(!nextPacked);

@@ -239,6 +239,10 @@ export async function getEventById(id: string): Promise<ScheduleEvent | null> {
         orderBy: (timeline, { asc: orderAsc }) => [orderAsc(timeline.sortOrder)],
       },
       inventory: {
+        orderBy: (inventory, { asc: orderAsc }) => [
+          orderAsc(inventory.sortOrder),
+          orderAsc(inventory.id),
+        ],
         with: { item: true },
       },
       staff: {
@@ -288,10 +292,13 @@ export async function getEventById(id: string): Promise<ScheduleEvent | null> {
       sortOrder: entry.sortOrder,
     })),
     inventory: event.inventory.map((entry) => ({
+      id: entry.id,
       inventoryItemId: entry.inventoryItemId,
       quantity: entry.quantity,
       packed: entry.packed,
       notes: entry.notes,
+      section: entry.section,
+      sortOrder: entry.sortOrder,
       item: {
         id: entry.item.id,
         name: entry.item.name,
@@ -377,6 +384,10 @@ export async function getEventsForDate(
         orderBy: (timeline, { asc: orderAsc }) => [orderAsc(timeline.sortOrder)],
       },
       inventory: {
+        orderBy: (inventory, { asc: orderAsc }) => [
+          orderAsc(inventory.sortOrder),
+          orderAsc(inventory.id),
+        ],
         with: { item: true },
       },
       staff: {
@@ -424,10 +435,13 @@ export async function getEventsForDate(
       sortOrder: entry.sortOrder,
     })),
     inventory: event.inventory.map((entry) => ({
+      id: entry.id,
       inventoryItemId: entry.inventoryItemId,
       quantity: entry.quantity,
       packed: entry.packed,
       notes: entry.notes,
+      section: entry.section,
+      sortOrder: entry.sortOrder,
       item: {
         id: entry.item.id,
         name: entry.item.name,

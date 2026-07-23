@@ -6,7 +6,7 @@ import { requireApiSession } from "@/lib/auth";
 import { apiError } from "@/lib/http";
 
 const packSchema = z.object({
-  inventoryItemId: z.string().min(1),
+  eventInventoryId: z.string().min(1),
   packed: z.boolean(),
 });
 
@@ -26,8 +26,8 @@ export async function PATCH(request: Request, context: Context) {
       .where(
         and(
           eq(eventInventory.eventId, id),
-          eq(eventInventory.inventoryItemId, input.inventoryItemId)
-        )
+          eq(eventInventory.id, input.eventInventoryId),
+        ),
       )
       .returning({ eventId: eventInventory.eventId });
 

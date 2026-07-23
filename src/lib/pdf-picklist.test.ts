@@ -176,16 +176,21 @@ Notes Haley Winkler MAIN TENT`,
     expect(preview.draft.timeline[0]).toMatchObject({
       time: "08:00",
       endTime: "18:00",
+      label: "Arrive at The Westmoor Club for setup",
     });
-    expect(preview.draft.notes).toContain("Pickup: Mon, Jul 06, 2026");
-    expect(preview.draft.notes).toContain("Pickup is reference-only");
+    expect(preview.draft.notes).toBe(
+      "Event: Jul 4, 8:00 AM-11:00 PM\n" +
+        "Pickup: Jul 6, 8:00 AM-6:00 PM\n" +
+        "Contact: (508) 228-9494",
+    );
 
     const cafe = preview.packItems.find((entry) => entry.inventoryItemId === "inv_cafe");
     expect(cafe).toMatchObject({
+      section: "Main Tent",
       quantity: 800,
       matchStatus: "matched",
     });
-    expect(cafe?.notes).toContain("MAIN TENT");
+    expect(cafe?.notes).toBe("Strung throughout the tent and around the perimeter.");
 
     const clearSides = preview.packItems.find(
       (entry) => entry.inventoryItemId === "inv_frame_clear",
@@ -236,10 +241,44 @@ Notes Haley Winkler MAIN TENT`,
     expect(preview.draft.timeline[0]).toMatchObject({
       time: "08:00",
       endTime: "18:00",
+      label: "Arrive at The Westmoor Club for setup",
     });
     expect(preview.sections).toContain("MAIN TENT");
     expect(preview.sections).toContain("SOUTH LAWN");
     expect(preview.sections).toContain("ADDITIONAL FOOD TENT OFF BAR TENT");
+    expect(preview.packItems).toHaveLength(30);
+    expect(
+      preview.packItems
+        .filter((entry) => entry.inventoryItemId === "inv_cafe")
+        .map((entry) => ({ section: entry.section, quantity: entry.quantity })),
+    ).toEqual([
+      { section: "Main Tent", quantity: 800 },
+      { section: "South Lawn", quantity: 180 },
+      { section: "Bar Into Food Tent", quantity: 120 },
+      { section: "Additional Food Tent Off Bar Tent", quantity: 100 },
+    ]);
+    expect(
+      preview.packItems
+        .filter((entry) => entry.inventoryItemId === "inv_frame_clear")
+        .map((entry) => ({ section: entry.section, quantity: entry.quantity })),
+    ).toEqual([
+      { section: "Main Tent", quantity: 310 },
+      { section: "Bar Into Food Tent", quantity: 120 },
+      { section: "Additional Food Tent Off Bar Tent", quantity: 100 },
+    ]);
+    expect(preview.packItems.every((entry) => !entry.notes?.includes("PDF sections"))).toBe(
+      true,
+    );
+    expect(preview.packItems.every((entry) => !entry.notes?.includes("PDF names"))).toBe(
+      true,
+    );
+    expect(preview.draft.notes).toBe(
+      "Event: Jul 4, 8:00 AM-11:00 PM\n" +
+        "Pickup: Jul 6, 8:00 AM-6:00 PM\n" +
+        "Contact: (508) 228-9494\n" +
+        "On-site attendant: 1 attendant, 4 hours, time TBD\n" +
+        "Permit: Main tent permit on June invoice",
+    );
     expect(preview.packItems.some((entry) => entry.matchStatus === "new")).toBe(true);
   });
 });

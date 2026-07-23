@@ -59,10 +59,13 @@ export type TimelineRecord = {
 };
 
 export type EventInventoryRecord = {
+  id: string;
   inventoryItemId: string;
   quantity: number;
   packed: boolean;
   notes: string | null;
+  section: string | null;
+  sortOrder: number;
   item?: InventoryRecord;
 };
 

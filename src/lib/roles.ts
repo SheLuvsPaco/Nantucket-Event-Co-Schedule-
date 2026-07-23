@@ -14,6 +14,14 @@ export function isCrewRole(role: Role): role is CrewRole {
   return (crewRoles as readonly Role[]).includes(role);
 }
 
+export function getUnassignedCrew<TCrew extends { id: string }>(
+  crew: readonly TCrew[],
+  assignments: readonly { userId: string }[],
+) {
+  const assignedIds = new Set(assignments.map((assignment) => assignment.userId));
+  return crew.filter((person) => !assignedIds.has(person.id));
+}
+
 export function roleLabel(role: Role) {
   return role === "LEAD"
     ? "Lead"
